@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">NetGuardHub</string>
+    <string name="title_activity_main">NetGuardHub</string>
+    <string name="package_name">com.netguard.hub</string>
+    <string name="custom_url_scheme">com.netguard.hub</string>
+</resources>

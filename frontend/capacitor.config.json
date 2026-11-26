@@ -1,0 +1,9 @@
+{
+  "appId": "com.netguard.hub",
+  "appName": "NetGuard Hub",
+  "webDir": "dist",
+  "server": {
+    "cleartext": true,
+    "androidScheme": "http"
+  }
+}
