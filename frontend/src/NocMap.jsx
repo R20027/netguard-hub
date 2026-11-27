@@ -81,13 +81,16 @@ const DEMO_POINTS_JEMBER = [
   },
 ];
 
+// CARTO Basemaps API Key dari akun pengguna (5,000,000 req/bulan)
+const CARTO_API_KEY = 'cb1_53qp_1_c5d2b45df593899aadd6df50';
+
 // Konfigurasi Lapisan Peta (Tile Layer) yang stabil dan anti-hilang saat di-zoom
 const MAP_STYLES = {
   voyager: {
     id: 'voyager',
     name: '🗺️ Voyager',
     shortName: 'Voyager',
-    url: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+    url: `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${CARTO_API_KEY}`,
     attribution: '&copy; OpenStreetMap &copy; CARTO',
     maxNativeZoom: 18,
     maxZoom: 19,
@@ -117,7 +120,7 @@ const MAP_STYLES = {
     id: 'light',
     name: '☀️ Terang',
     shortName: 'Terang',
-    url: 'https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png',
+    url: `https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png?key=${CARTO_API_KEY}`,
     attribution: '&copy; OpenStreetMap &copy; CARTO',
     maxNativeZoom: 18,
     maxZoom: 19,
@@ -127,7 +130,7 @@ const MAP_STYLES = {
     id: 'dark',
     name: '🌙 Dark NOC',
     shortName: 'Dark',
-    url: 'https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png',
+    url: `https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key=${CARTO_API_KEY}`,
     attribution: '&copy; OpenStreetMap &copy; CARTO',
     maxNativeZoom: 18,
     maxZoom: 19,

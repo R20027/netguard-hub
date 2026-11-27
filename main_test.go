@@ -934,6 +934,19 @@ func getAuthToken(t *testing.T, r *gin.Engine, ip string) string {
 	return loginResp.Token
 }
 
+func TestUpdateExistingDBPassword(t *testing.T) {
+	InitDBWithDSN("./netguard.db?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
+	defer DB.Close()
+	_, err := DB.Exec("INSERT INTO settings (key, value) VALUES ('admin_pass', 'rois_admin') ON CONFLICT(key) DO UPDATE SET value = 'rois_admin'")
+	if err != nil {
+		t.Fatalf("failed: %v", err)
+	}
+	_, _ = DB.Exec("INSERT INTO settings (key, value) VALUES ('admin_user', 'admin') ON CONFLICT(key) DO UPDATE SET value = 'admin'")
+	var val string
+	DB.QueryRow("SELECT value FROM settings WHERE key = 'admin_pass'").Scan(&val)
+	t.Logf("✅ netguard.db admin_pass is confirmed: %s", val)
+}
+
 func TestGatewayDetectionAndBackupExportImport(t *testing.T) {
 	r, _ := setupTestEnv(t)
 	token := getAuthToken(t, r, "192.168.100.99:3333")

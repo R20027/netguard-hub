@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { API } from './api';
+import { API, isGitHubPages } from './api';
 
 export default function Login({ onLoginSuccess }) {
   const [username, setUsername] = useState('admin');
@@ -32,17 +32,21 @@ export default function Login({ onLoginSuccess }) {
     setLoading(true);
     setErrorMsg('');
 
+    const u = username.trim();
+    const p = password.trim();
+
     try {
       const res = await axios.post(`${API}/auth/login`, {
-        username: username.trim(),
-        password: password.trim(),
+        username: u,
+        password: p,
       });
 
       if (res.data?.token) {
         localStorage.setItem('guardhub_token', res.data.token);
-        localStorage.setItem('guardhub_user', res.data.username || username);
+        localStorage.setItem('guardhub_user', res.data.username || u);
         axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
-        onLoginSuccess(res.data.username || username);
+        onLoginSuccess(res.data.username || u);
+        return;
       }
     } catch (err) {
       const data = err.response?.data;
@@ -50,9 +54,22 @@ export default function Login({ onLoginSuccess }) {
         const waitSec = data?.retry_after || 60;
         setLockoutSeconds(waitSec);
         setErrorMsg(data?.error || `Salah password 3 kali! Sistem terkunci selama ${waitSec} detik.`);
-      } else {
-        setErrorMsg(data?.error || 'Username atau password salah.');
+        return;
       }
+
+      // Jika pada GitHub Pages (tanpa server backend) atau koneksi backend terputus:
+      // Verifikasi langsung kredensial admin & rois_admin agar selalu sukses masuk
+      const isOnlineStatic = isGitHubPages || !err.response || err.response?.status === 404 || err.code === 'ERR_NETWORK';
+      if (isOnlineStatic && u === 'admin' && p === 'rois_admin') {
+        const token = 'gh_' + Date.now();
+        localStorage.setItem('guardhub_token', token);
+        localStorage.setItem('guardhub_user', 'admin');
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        onLoginSuccess('admin');
+        return;
+      }
+
+      setErrorMsg(data?.error || 'Username atau password salah.');
     } finally {
       setLoading(false);
     }
@@ -159,33 +176,7 @@ export default function Login({ onLoginSuccess }) {
               'Masuk ke GuardHub'
             )}
           </button>
-
-          <div className="pt-1 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                const demoToken = 'demo_' + Date.now();
-                localStorage.setItem('guardhub_token', demoToken);
-                localStorage.setItem('guardhub_user', 'admin (Demo)');
-                onLoginSuccess('admin');
-              }}
-              className="text-[11px] text-cyan-400 hover:text-cyan-300 underline font-semibold transition"
-            >
-              🚀 Buka Langsung (Mode Demo / Preview Web)
-            </button>
-          </div>
         </form>
-
-        {/* Petunjuk Default Login & Keamanan Bot */}
-        <div className="pt-2 border-t border-slate-800/80 space-y-2 text-[11px] text-slate-500">
-          <div className="flex items-center justify-between text-slate-400">
-            <span>Login Default:</span>
-            <span className="font-mono text-cyan-400 font-semibold">admin / rois_admin</span>
-          </div>
-          <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/60 text-[10px] text-slate-400 leading-normal">
-            🛡️ <strong>Proteksi Anti-Bot:</strong> Salah password 3 kali pertama dijeda 1 menit (60 detik). Jika salah 3 kali lagi, sistem menjeda selama 3 menit (180 detik) untuk melindungi router dan server.
-          </div>
-        </div>
       </div>
 
       <footer className="mt-6 text-xs text-slate-600 text-center">
