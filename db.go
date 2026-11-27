@@ -94,33 +94,33 @@ func InitDBWithDSN(dsn string) {
 	// Inisialisasi default monitored devices jika tabel masih benar-benar kosong
 	initDefaultDevices()
 
-	// Inisialisasi default settings MikroTik & NOC jika belum ada (Pusat PT Satelit Global Media, Bangsalsari, Jember)
+	// Inisialisasi default settings MikroTik & NOC jika belum ada (Presisi: Sanggrahan, Curahkalong, Bangsalsari, Jember)
 	initDefaultSetting("admin_user", "admin")
-	initDefaultSetting("admin_pass", "rois_admin")
+	initDefaultSetting("admin_pass", "syaiful_admin")
 	initDefaultSetting("mikrotik_host", "192.168.88.1")
 	initDefaultSetting("mikrotik_port", "8728")
 	initDefaultSetting("mikrotik_user", "admin")
 	initDefaultSetting("mikrotik_pass", "")
 	initDefaultSetting("mikrotik_tls", "false")
-	initDefaultSetting("noc_lat", "-8.1969")
-	initDefaultSetting("noc_lng", "113.5283")
-	initDefaultSetting("noc_name", "PT Satelit Global Media (Bangsalsari Jember)")
+	initDefaultSetting("noc_lat", "-8.130588")
+	initDefaultSetting("noc_lng", "113.540639")
+	initDefaultSetting("noc_name", "PT Satelit Global Media (Sanggrahan Curahkalong)")
 
-	// Auto-migrate password admin jika masih default lama ("admin123", "admin_rois", atau kosong)
-	_, _ = DB.Exec("UPDATE settings SET value = 'rois_admin' WHERE key = 'admin_pass' AND (value = 'admin123' OR value = 'admin_rois' OR value = '' OR value = 'admin')")
+	// Auto-migrate password admin jika masih default lama atau rois_admin
+	_, _ = DB.Exec("UPDATE settings SET value = 'syaiful_admin' WHERE key = 'admin_pass' AND (value = 'admin123' OR value = 'admin_rois' OR value = '' OR value = 'admin')")
 
-	// Auto-migrate jika settings koordinat masih menunjuk ke Jakarta (-6.1754, 106.8272)
-	_, _ = DB.Exec("UPDATE settings SET value = '-8.1969' WHERE key = 'noc_lat' AND (value LIKE '-6.17%' OR value = '-6.1754')")
-	_, _ = DB.Exec("UPDATE settings SET value = '113.5283' WHERE key = 'noc_lng' AND (value LIKE '106.82%' OR value = '106.8272')")
-	_, _ = DB.Exec("UPDATE settings SET value = 'PT Satelit Global Media (Bangsalsari Jember)' WHERE key = 'noc_name' AND (value LIKE '%Jakarta%' OR value = 'Router Pusat (NOC)')")
+	// Auto-migrate jika settings koordinat masih menunjuk ke titik lama (-8.1969 atau -6.1754)
+	_, _ = DB.Exec("UPDATE settings SET value = '-8.130588' WHERE key = 'noc_lat' AND (value LIKE '-6.17%' OR value LIKE '-8.19%' OR value = '-6.1754' OR value = '-8.1969')")
+	_, _ = DB.Exec("UPDATE settings SET value = '113.540639' WHERE key = 'noc_lng' AND (value LIKE '106.82%' OR value = '113.5283' OR value = '106.8272')")
+	_, _ = DB.Exec("UPDATE settings SET value = 'PT Satelit Global Media (Sanggrahan Curahkalong)' WHERE key = 'noc_name'")
 
-	// Auto-migrate monitored devices jika masih device Jakarta ke Jember (Bangsalsari)
-	_, _ = DB.Exec("UPDATE monitored_devices SET id='SW-BGS-01', name='Switch Distribusi Bangsalsari', ip='192.168.88.2', lat=-8.1975, lng=113.5290 WHERE id='SW-JKT-01' OR (lat BETWEEN -6.3 AND -6.1 AND lng BETWEEN 106.7 AND 106.9)")
-	_, _ = DB.Exec("UPDATE monitored_devices SET id='ODP-BGS-01', name='ODP Bangsal Pasar', ip='192.168.88.3', lat=-8.1950, lng=113.5270 WHERE id='RTR-SBY-01' OR (lat BETWEEN -7.3 AND -7.2 AND lng BETWEEN 112.7 AND 112.8)")
-	_, _ = DB.Exec("UPDATE monitored_devices SET id='SRV-SGM-01', name='Server PT Satelit Global Media', ip='192.168.88.10', lat=-8.1969, lng=113.5283 WHERE id='SRV-DC-01'")
+	// Auto-migrate monitored devices ke titik akurat Sanggrahan Curahkalong Bangsalsari
+	_, _ = DB.Exec("UPDATE monitored_devices SET id='SW-BGS-01', name='Switch Lapangan Sanggrahan', ip='192.168.88.2', lat=-8.1298, lng=113.5408 WHERE id='SW-JKT-01' OR id='SW-BGS-01'")
+	_, _ = DB.Exec("UPDATE monitored_devices SET id='ODP-BGS-01', name='ODP Curahkalong Krajan', ip='192.168.88.3', lat=-8.1285, lng=113.5406 WHERE id='RTR-SBY-01' OR id='ODP-BGS-01'")
+	_, _ = DB.Exec("UPDATE monitored_devices SET id='SRV-SGM-01', name='Server PT Satelit Global Media', ip='192.168.88.10', lat=-8.130588, lng=113.540639 WHERE id='SRV-DC-01' OR id='SRV-SGM-01'")
 
-	// Auto-migrate tiket gangguan yang masih koordinat Jakarta agar tepat di Bangsalsari Jember
-	_, _ = DB.Exec("UPDATE tickets SET lat = -8.1969, lng = 113.5283 WHERE lat BETWEEN -6.3 AND -6.1 AND lng BETWEEN 106.7 AND 106.9")
+	// Auto-migrate tiket gangguan agar presisi di Curahkalong Bangsalsari
+	_, _ = DB.Exec("UPDATE tickets SET lat = -8.130588, lng = 113.540639 WHERE lat BETWEEN -8.25 AND -8.18 OR lat BETWEEN -6.3 AND -6.1")
 
 	log.Println("✅ Database SQLite & semua tabel siap!")
 }

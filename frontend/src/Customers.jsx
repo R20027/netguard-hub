@@ -12,8 +12,8 @@ function MiniMapPicker({ lat, lng, nocCenter, onPick }) {
 
   useEffect(() => {
     if (!containerRef.current) return;
-    const initLat = lat && !isNaN(lat) ? Number(lat) : nocCenter.lat || -8.1969;
-    const initLng = lng && !isNaN(lng) ? Number(lng) : nocCenter.lng || 113.5283;
+    const initLat = lat && !isNaN(lat) ? Number(lat) : nocCenter.lat || -8.130588;
+    const initLng = lng && !isNaN(lng) ? Number(lng) : nocCenter.lng || 113.540639;
 
     if (!mapRef.current) {
       const map = L.map(containerRef.current, {
@@ -71,7 +71,7 @@ function MiniMapPicker({ lat, lng, nocCenter, onPick }) {
 export default function Customers({ onSwitchTab }) {
   const [customers, setCustomers] = useState([]);
   const [profiles, setProfiles] = useState(['10Mbps', '20Mbps', '50Mbps', '100Mbps', 'default']);
-  const [nocCenter, setNocCenter] = useState({ lat: -8.1969, lng: 113.5283 });
+  const [nocCenter, setNocCenter] = useState({ lat: -8.130588, lng: 113.540639 });
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);

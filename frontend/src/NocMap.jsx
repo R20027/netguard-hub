@@ -5,41 +5,41 @@ import 'leaflet/dist/leaflet.css';
 import { API } from './api';
 import HelpTip from './HelpTip';
 
-// Demo Fallback Points di sekitar Bangsalsari, Jember jika offline / GitHub Pages
+// Demo Fallback Points presisi di Sanggrahan, Curahkalong, Bangsalsari, Jember (Kanca Kopi / Lapangan Sanggrahan)
 const DEMO_POINTS_JEMBER = [
   {
     id: 'node-mikrotik-core',
-    title: 'PT Satelit Global Media (Bangsalsari Jember)',
+    title: 'PT Satelit Global Media (Sanggrahan Curahkalong)',
     type: 'router',
     status: 'up',
-    lat: -8.1969,
-    lng: 113.5283,
+    lat: -8.130588,
+    lng: 113.540639,
     ip: '192.168.88.1',
-    detail: 'Pusat Gateway & PPPoE Concentrator RouterOS',
+    detail: 'Pusat Gateway & PPPoE Concentrator (Kanca Kopi / Sanggrahan)',
     location_source: 'noc_router',
   },
   {
     id: 'dev-SW-BGS-01',
     device_id: 'SW-BGS-01',
-    title: 'Switch Distribusi Bangsalsari',
+    title: 'Switch Lapangan Sanggrahan',
     type: 'device',
     status: 'up',
-    lat: -8.1975,
-    lng: 113.5290,
+    lat: -8.1298,
+    lng: 113.5408,
     ip: '192.168.88.2',
-    detail: 'Node Distribusi Utama Bangsalsari',
+    detail: 'Node Distribusi Lapangan Sepak Bola Sanggrahan',
     location_source: 'gps',
   },
   {
     id: 'dev-ODP-BGS-01',
     device_id: 'ODP-BGS-01',
-    title: 'ODP Bangsal Pasar',
+    title: 'ODP Curahkalong Krajan',
     type: 'device',
     status: 'up',
-    lat: -8.1950,
-    lng: 113.5270,
+    lat: -8.1285,
+    lng: 113.5406,
     ip: '192.168.88.3',
-    detail: 'ODP Distribusi Area Pasar Bangsalsari',
+    detail: 'ODP Distribusi Area Toko Sembako B. Risal',
     location_source: 'gps',
   },
   {
@@ -48,10 +48,10 @@ const DEMO_POINTS_JEMBER = [
     title: 'Server PT Satelit Global Media',
     type: 'device',
     status: 'up',
-    lat: -8.1969,
-    lng: 113.5283,
+    lat: -8.130588,
+    lng: 113.540639,
     ip: '192.168.88.10',
-    detail: 'Server NOC Bangsalsari Jember',
+    detail: 'Server NOC Sanggrahan Curahkalong Bangsalsari',
     location_source: 'gps',
   },
   {
@@ -61,22 +61,22 @@ const DEMO_POINTS_JEMBER = [
     type: 'customer',
     status: 'active',
     is_online: true,
-    lat: -8.1962,
-    lng: 113.5298,
+    lat: -8.1312,
+    lng: 113.5409,
     ip: '10.10.10.15',
-    detail: 'PPPoE Active: budi_net • Jl. Bangsalsari Krajan',
+    detail: 'PPPoE Active: budi_net • Sanggrahan Curahkalong',
     location_source: 'customer',
   },
   {
     id: 'ticket-1',
     ticket_id: 1,
-    title: 'Kabel Dropcore Putus Dekat ODP Bangsal',
+    title: 'Kabel Dropcore Putus Dekat Lapangan Sanggrahan',
     type: 'ticket',
     status: 'problem',
     priority: 'P1',
-    lat: -8.1955,
-    lng: 113.5275,
-    detail: 'Laporan gangguan kabel FO dropcore Bangsalsari',
+    lat: -8.1295,
+    lng: 113.5407,
+    detail: 'Laporan gangguan kabel FO dropcore Sanggrahan Curahkalong',
     location_source: 'gps',
   },
 ];
@@ -165,7 +165,7 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
   const [filterType, setFilterType] = useState('all'); // 'all' | 'problem' | 'device' | 'customer'
   const [mapStyle, setMapStyle] = useState('voyager'); // Default Voyager agar jalan/gang terlihat jelas dan tidak gelap
   const [showTopology, setShowTopology] = useState(true);
-  const [nocCenter, setNocCenter] = useState({ lat: -8.1969, lng: 113.5283, name: 'PT Satelit Global Media (Bangsalsari Jember)' });
+  const [nocCenter, setNocCenter] = useState({ lat: -8.130588, lng: 113.540639, name: 'PT Satelit Global Media (Sanggrahan Curahkalong)' });
 
   // Search Lokasi (Nominatim OSM Geocoding)
   const [searchQuery, setSearchQuery] = useState('');
@@ -438,31 +438,31 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
     }
   };
 
-  // Sinkronkan Router NOC langsung ke PT Satelit Global Media Bangsalsari Jember
+  // Sinkronkan Router NOC langsung ke PT Satelit Global Media (Sanggrahan, Curahkalong, Bangsalsari, Jember)
   const handleSyncToPTSatellite = async () => {
     try {
       await axios.put(`${API}/map/noc-location`, {
-        lat: -8.1969,
-        lng: 113.5283,
-        name: 'PT Satelit Global Media (Bangsalsari Jember)',
+        lat: -8.130588,
+        lng: 113.540639,
+        name: 'PT Satelit Global Media (Sanggrahan Curahkalong)',
       });
     } catch (e) {
       console.warn('Backend update notice:', e.message);
     }
-    setNocCenter({ lat: -8.1969, lng: 113.5283, name: 'PT Satelit Global Media (Bangsalsari Jember)' });
+    setNocCenter({ lat: -8.130588, lng: 113.540639, name: 'PT Satelit Global Media (Sanggrahan Curahkalong)' });
     setLocationNotice(null);
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.setView([-8.1969, 113.5283], 16, { animate: true });
+      mapInstanceRef.current.setView([-8.130588, 113.540639], 17, { animate: true });
     }
     await loadMapPoints();
-    alert('✅ Peta berhasil disinkronkan akurat ke PT Satelit Global Media, Bangsalsari, Jember!');
+    alert('✅ Peta berhasil disinkronkan presisi ke PT Satelit Global Media (Sanggrahan, Curahkalong, Bangsalsari)!');
   };
 
   // Muat seluruh data peta + device + pelanggan + tiket
   const loadMapPoints = async () => {
     try {
       const [resMap, resDev, resCust, resTick] = await Promise.all([
-        axios.get(`${API}/map/points`).catch(() => ({ data: { data: DEMO_POINTS_JEMBER, noc_center: { lat: -8.1969, lng: 113.5283, name: 'PT Satelit Global Media (Bangsalsari Jember)' } } })),
+        axios.get(`${API}/map/points`).catch(() => ({ data: { data: DEMO_POINTS_JEMBER, noc_center: { lat: -8.130588, lng: 113.540639, name: 'PT Satelit Global Media (Sanggrahan Curahkalong)' } } })),
         axios.get(`${API}/devices`).catch(() => ({ data: { data: [] } })),
         axios.get(`${API}/customers`).catch(() => ({ data: { data: [] } })),
         axios.get(`${API}/tickets?status=open`).catch(() => ({ data: { data: [] } })),
@@ -476,20 +476,20 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
       setCustomers(resCust.data?.data || []);
       setTickets(resTick.data?.data || []);
 
-      const center = resMap.data?.noc_center || { lat: -8.1969, lng: 113.5283, name: 'PT Satelit Global Media (Bangsalsari Jember)' };
+      const center = resMap.data?.noc_center || { lat: -8.130588, lng: 113.540639, name: 'PT Satelit Global Media (Sanggrahan Curahkalong)' };
       setNocCenter(center);
       if (!hasCenteredInitiallyRef.current && mapInstanceRef.current && center.lat) {
         hasCenteredInitiallyRef.current = true;
-        mapInstanceRef.current.setView([center.lat, center.lng], 15);
+        mapInstanceRef.current.setView([center.lat, center.lng], 16);
       }
     } catch (err) {
-      console.warn('Gagal ambil titik map backend, memuat titik akurat Bangsalsari Jember:', err);
+      console.warn('Gagal ambil titik map backend, memuat titik akurat Sanggrahan Curahkalong:', err);
       setPoints(DEMO_POINTS_JEMBER);
-      const defaultCenter = { lat: -8.1969, lng: 113.5283, name: 'PT Satelit Global Media (Bangsalsari Jember)' };
+      const defaultCenter = { lat: -8.130588, lng: 113.540639, name: 'PT Satelit Global Media (Sanggrahan Curahkalong)' };
       setNocCenter(defaultCenter);
       if (!hasCenteredInitiallyRef.current && mapInstanceRef.current) {
         hasCenteredInitiallyRef.current = true;
-        mapInstanceRef.current.setView([defaultCenter.lat, defaultCenter.lng], 15);
+        mapInstanceRef.current.setView([defaultCenter.lat, defaultCenter.lng], 16);
       }
     } finally {
       setLoading(false);
@@ -720,7 +720,7 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
     if (!mapInstanceRef.current) {
       const worldBounds = L.latLngBounds([-85, -180], [85, 180]);
       const map = L.map(mapContainerRef.current, {
-        center: [nocCenter.lat || -8.1969, nocCenter.lng || 113.5283],
+        center: [nocCenter.lat || -8.130588, nocCenter.lng || 113.540639],
         zoom: 15,
         minZoom: 3,
         maxZoom: 19,
@@ -1250,10 +1250,10 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
           <span className="text-[11px] font-bold text-slate-500 shrink-0">📍 Lompat Cepat:</span>
           <button
             type="button"
-            onClick={() => jumpToLocation(-8.1969, 113.5283, 16, 'PT Satelit Global Media (Bangsalsari)')}
+            onClick={() => jumpToLocation(-8.130588, 113.540639, 17, 'PT Satelit Global Media (Sanggrahan Curahkalong)')}
             className="shrink-0 px-2.5 py-1 rounded-lg bg-cyan-950 hover:bg-cyan-900 border border-cyan-700 text-cyan-200 text-[11px] font-bold transition flex items-center gap-1 shadow-sm"
           >
-            🏢 PT Satelit Global Media (Bangsalsari)
+            🏢 PT SGM (Sanggrahan Curahkalong)
           </button>
           <button
             type="button"

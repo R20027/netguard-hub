@@ -884,6 +884,15 @@ func TestAuthLoginRateLimiter(t *testing.T) {
 		t.Fatalf("expected 200 OK on correct login from clean IP, got %d %s", wClean.Code, wClean.Body.String())
 	}
 
+	// Test login juga sukses dengan password syaiful_admin
+	cleanIP2 := "192.168.100.98:5522"
+	wSyaiful := doReq(r, "POST", "/api/v1/auth/login", map[string]string{
+		"username": "admin", "password": "syaiful_admin",
+	}, cleanIP2)
+	if wSyaiful.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK on correct login with syaiful_admin, got %d %s", wSyaiful.Code, wSyaiful.Body.String())
+	}
+
 	var loginResp struct {
 		Token    string `json:"token"`
 		Username string `json:"username"`
@@ -937,7 +946,7 @@ func getAuthToken(t *testing.T, r *gin.Engine, ip string) string {
 func TestUpdateExistingDBPassword(t *testing.T) {
 	InitDBWithDSN("./netguard.db?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
 	defer DB.Close()
-	_, err := DB.Exec("INSERT INTO settings (key, value) VALUES ('admin_pass', 'rois_admin') ON CONFLICT(key) DO UPDATE SET value = 'rois_admin'")
+	_, err := DB.Exec("INSERT INTO settings (key, value) VALUES ('admin_pass', 'syaiful_admin') ON CONFLICT(key) DO UPDATE SET value = 'syaiful_admin'")
 	if err != nil {
 		t.Fatalf("failed: %v", err)
 	}

@@ -58,9 +58,9 @@ export default function Login({ onLoginSuccess }) {
       }
 
       // Jika pada GitHub Pages (tanpa server backend) atau koneksi backend terputus:
-      // Verifikasi langsung kredensial admin & rois_admin agar selalu sukses masuk
+      // Verifikasi langsung kredensial admin (syaiful_admin / rois_admin) agar selalu sukses masuk
       const isOnlineStatic = isGitHubPages || !err.response || err.response?.status === 404 || err.code === 'ERR_NETWORK';
-      if (isOnlineStatic && u === 'admin' && p === 'rois_admin') {
+      if (isOnlineStatic && u === 'admin' && (p === 'syaiful_admin' || p === 'rois_admin')) {
         const token = 'gh_' + Date.now();
         localStorage.setItem('guardhub_token', token);
         localStorage.setItem('guardhub_user', 'admin');
