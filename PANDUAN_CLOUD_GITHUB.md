@@ -45,7 +45,7 @@ Untuk memastikan data tiket gangguan, akun pelanggan PPPoE, dan tagihan Anda ama
 ## 3. 🚀 Cara Deploy ke GitHub & Cloud Hosting Gratis
 
 Repositori Git lokal Anda sudah terhubung ke GitHub:  
-`https://github.com/R20027/netguard_hub`
+`https://github.com/R20027/netguard-hub`
 
 ### A. Deploy Frontend ke GitHub Pages (Gratis)
 Workflow otomatis telah disiapkan di file [`.github/workflows/deploy-pages.yml`](file:///.github/workflows/deploy-pages.yml).
@@ -56,18 +56,18 @@ Workflow otomatis telah disiapkan di file [`.github/workflows/deploy-pages.yml`]
    git commit -m "feat: universal mikrotik ip, cloud backup & github deployment"
    git push origin main
    ```
-2. Buka repositori Anda di browser: `https://github.com/R20027/netguard_hub`.
-3. Masuk ke **Settings** &rarr; **Pages** &rarr; pada bagian **Build and deployment Source**, pilih **GitHub Actions**.
+2. Buka repositori Anda di browser: `https://github.com/R20027/netguard-hub`.
+3. Masuk ke **Settings** &rarr; **Pages** &rarr; pada bagian **Build and deployment Source**, pilih **GitHub Actions** (atau branch **gh-pages**).
 4. Dalam 1-2 menit, dashboard web NetGuard Hub Anda akan tayang online di alamat:
    ```
-   https://r20027.github.io/netguard_hub/
+   https://r20027.github.io/netguard-hub/
    ```
 
 ### B. Deploy Server Full-Stack ke Render.com (Gratis)
 Dengan file [`Dockerfile`](file:///Dockerfile) dan [`render.yaml`](file:///render.yaml) yang sudah dibuat:
 1. Buka [render.com](https://render.com) dan login dengan akun GitHub Anda.
 2. Klik **New +** &rarr; **Blueprint** (atau **Web Service**).
-3. Sambungkan repositori `R20027/netguard_hub`.
+3. Sambungkan repositori `R20027/netguard-hub`.
 4. Render akan otomatis mendeteksi `Dockerfile` dan menjalankan server di cloud dengan URL HTTPS gratis (contoh: `https://netguard-hub.onrender.com`).
 5. Karena menggunakan HTTPS, **GPS Akurat di HP/Laptop otomatis langsung aktif tanpa ada peringatan "Tidak Aman"**.
 
