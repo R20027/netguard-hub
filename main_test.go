@@ -842,26 +842,43 @@ func TestAuthLoginRateLimiter(t *testing.T) {
 		t.Fatalf("expected 401 with attempts_left=1, got %d %s", w2.Code, w2.Body.String())
 	}
 
-	// 3. Percobaan salah ke-3 -> Harus terkunci (HTTP 429 Too Many Requests) selama 60 detik
+	// 3. Percobaan salah ke-3 -> Harus terkunci (HTTP 429 Too Many Requests) selama 60 detik (1 menit)
 	w3 := doReq(r, "POST", "/api/v1/auth/login", map[string]string{
 		"username": "admin", "password": "wrongpassword",
 	}, testIP)
-	if w3.Code != http.StatusTooManyRequests || !strings.Contains(w3.Body.String(), `"locked":true`) {
-		t.Fatalf("expected 429 lockout on 3rd failure, got %d %s", w3.Code, w3.Body.String())
+	if w3.Code != http.StatusTooManyRequests || !strings.Contains(w3.Body.String(), `"locked":true`) || !strings.Contains(w3.Body.String(), `"retry_after":60`) {
+		t.Fatalf("expected 429 lockout on 3rd failure with 60s, got %d %s", w3.Code, w3.Body.String())
 	}
 
-	// Percobaan ke-4 saat terkunci (meskipun password benar) harus tetap ditolak 429
+	// Percobaan saat terkunci (meskipun password benar) harus tetap ditolak 429
 	w4 := doReq(r, "POST", "/api/v1/auth/login", map[string]string{
-		"username": "admin", "password": "admin123",
+		"username": "admin", "password": "rois_admin",
 	}, testIP)
 	if w4.Code != http.StatusTooManyRequests {
 		t.Fatalf("expected 429 during lockout window, got %d %s", w4.Code, w4.Body.String())
 	}
 
+	// Simulasi jeda 1 menit selesai, lalu user salah lagi 3 kali berturut-turut -> Harus terkunci 3 menit (180 detik)
+	loginLimiter.mu.Lock()
+	for _, att := range loginLimiter.attempts {
+		att.lockedUntil = time.Now().Add(-1 * time.Second) // expired
+	}
+	loginLimiter.mu.Unlock()
+
+	// Salah ke-1 di sesi ke-2
+	doReq(r, "POST", "/api/v1/auth/login", map[string]string{"username": "admin", "password": "wrongpassword2"}, testIP)
+	// Salah ke-2 di sesi ke-2
+	doReq(r, "POST", "/api/v1/auth/login", map[string]string{"username": "admin", "password": "wrongpassword2"}, testIP)
+	// Salah ke-3 di sesi ke-2 -> harus terkunci 180 detik (3 menit)
+	wLock2 := doReq(r, "POST", "/api/v1/auth/login", map[string]string{"username": "admin", "password": "wrongpassword2"}, testIP)
+	if wLock2.Code != http.StatusTooManyRequests || !strings.Contains(wLock2.Body.String(), `"retry_after":180`) {
+		t.Fatalf("expected 429 lockout of 180s (3 menit) on repeat 3x failure, got %d %s", wLock2.Code, wLock2.Body.String())
+	}
+
 	// IP lain tidak boleh terpengaruh oleh lockout IP pertama
 	cleanIP := "192.168.100.99:5522"
 	wClean := doReq(r, "POST", "/api/v1/auth/login", map[string]string{
-		"username": "admin", "password": "admin123",
+		"username": "admin", "password": "rois_admin",
 	}, cleanIP)
 	if wClean.Code != http.StatusOK {
 		t.Fatalf("expected 200 OK on correct login from clean IP, got %d %s", wClean.Code, wClean.Body.String())
@@ -906,7 +923,7 @@ func TestAuthLoginRateLimiter(t *testing.T) {
 
 func getAuthToken(t *testing.T, r *gin.Engine, ip string) string {
 	wLogin := doReq(r, "POST", "/api/v1/auth/login", map[string]string{
-		"username": "admin", "password": "admin123",
+		"username": "admin", "password": "rois_admin",
 	}, ip)
 	var loginResp struct {
 		Token string `json:"token"`

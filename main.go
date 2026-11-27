@@ -432,8 +432,9 @@ type LoginLimiter struct {
 }
 
 type clientAttempt struct {
-	failCount   int
-	lockedUntil time.Time
+	failCount    int
+	lockoutCount int
+	lockedUntil  time.Time
 }
 
 var loginLimiter = &LoginLimiter{
@@ -517,26 +518,46 @@ func LoginHandler(c *gin.Context) {
 	}
 
 	savedUser := GetSetting("admin_user", "admin")
-	savedPass := GetSetting("admin_pass", "admin123")
+	savedPass := GetSetting("admin_pass", "rois_admin")
 
 	if req.Username != savedUser || req.Password != savedPass {
 		loginLimiter.mu.Lock()
 		att.failCount++
 		if att.failCount >= 3 {
-			att.lockedUntil = time.Now().Add(60 * time.Second)
+			var lockDuration time.Duration
+			var waitSec int
+			var lockMsg string
+
+			if att.lockoutCount == 0 {
+				lockDuration = 60 * time.Second
+				waitSec = 60
+				lockMsg = "Salah password 3 kali! Akses dijeda selama 1 menit (60 detik) untuk mencegah serangan bot."
+				att.lockoutCount = 1
+			} else {
+				lockDuration = 180 * time.Second // 3 menit
+				waitSec = 180
+				lockMsg = "Salah password berulang (3 kali lagi)! Akses dijeda selama 3 menit (180 detik) untuk proteksi anti-bot."
+				att.lockoutCount++
+			}
+
+			att.lockedUntil = time.Now().Add(lockDuration)
 			att.failCount = 0
 			loginLimiter.mu.Unlock()
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error":       "Salah password 3 kali! Akses dijeda selama 1 menit (60 detik) untuk mencegah serangan bot.",
+				"error":       lockMsg,
 				"locked":      true,
-				"retry_after": 60,
+				"retry_after": waitSec,
 			})
 			return
 		}
 		attemptsLeft := 3 - att.failCount
+		nextWait := "1 menit (60 detik)"
+		if att.lockoutCount >= 1 {
+			nextWait = "3 menit (180 detik)"
+		}
 		loginLimiter.mu.Unlock()
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"error":         fmt.Sprintf("Username atau password salah! Sisa percobaan: %d kali sebelum dijeda 1 menit.", attemptsLeft),
+			"error":         fmt.Sprintf("Username atau password salah! Sisa percobaan: %d kali sebelum akses dijeda %s.", attemptsLeft, nextWait),
 			"attempts_left": attemptsLeft,
 			"locked":        false,
 		})
@@ -546,6 +567,7 @@ func LoginHandler(c *gin.Context) {
 	// Login Sukses: reset counter
 	loginLimiter.mu.Lock()
 	att.failCount = 0
+	att.lockoutCount = 0
 	att.lockedUntil = time.Time{}
 	loginLimiter.mu.Unlock()
 

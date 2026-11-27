@@ -5,20 +5,92 @@ import 'leaflet/dist/leaflet.css';
 import { API } from './api';
 import HelpTip from './HelpTip';
 
-// CARTO Basemaps API Key dari akun pengguna (5,000,000 req/bulan)
-const CARTO_API_KEY = 'cb1_53qp_1_c5d2b45df593899aadd6df50';
+// Demo Fallback Points di sekitar Bangsalsari, Jember jika offline / GitHub Pages
+const DEMO_POINTS_JEMBER = [
+  {
+    id: 'node-mikrotik-core',
+    title: 'PT Satelit Global Media (Bangsalsari Jember)',
+    type: 'router',
+    status: 'up',
+    lat: -8.1969,
+    lng: 113.5283,
+    ip: '192.168.88.1',
+    detail: 'Pusat Gateway & PPPoE Concentrator RouterOS',
+    location_source: 'noc_router',
+  },
+  {
+    id: 'dev-SW-BGS-01',
+    device_id: 'SW-BGS-01',
+    title: 'Switch Distribusi Bangsalsari',
+    type: 'device',
+    status: 'up',
+    lat: -8.1975,
+    lng: 113.5290,
+    ip: '192.168.88.2',
+    detail: 'Node Distribusi Utama Bangsalsari',
+    location_source: 'gps',
+  },
+  {
+    id: 'dev-ODP-BGS-01',
+    device_id: 'ODP-BGS-01',
+    title: 'ODP Bangsal Pasar',
+    type: 'device',
+    status: 'up',
+    lat: -8.1950,
+    lng: 113.5270,
+    ip: '192.168.88.3',
+    detail: 'ODP Distribusi Area Pasar Bangsalsari',
+    location_source: 'gps',
+  },
+  {
+    id: 'dev-SRV-SGM-01',
+    device_id: 'SRV-SGM-01',
+    title: 'Server PT Satelit Global Media',
+    type: 'device',
+    status: 'up',
+    lat: -8.1969,
+    lng: 113.5283,
+    ip: '192.168.88.10',
+    detail: 'Server NOC Bangsalsari Jember',
+    location_source: 'gps',
+  },
+  {
+    id: 'cust-1',
+    customer_id: 1,
+    title: 'Pelanggan: Budi Santoso (10Mbps)',
+    type: 'customer',
+    status: 'active',
+    is_online: true,
+    lat: -8.1962,
+    lng: 113.5298,
+    ip: '10.10.10.15',
+    detail: 'PPPoE Active: budi_net • Jl. Bangsalsari Krajan',
+    location_source: 'customer',
+  },
+  {
+    id: 'ticket-1',
+    ticket_id: 1,
+    title: 'Kabel Dropcore Putus Dekat ODP Bangsal',
+    type: 'ticket',
+    status: 'problem',
+    priority: 'P1',
+    lat: -8.1955,
+    lng: 113.5275,
+    detail: 'Laporan gangguan kabel FO dropcore Bangsalsari',
+    location_source: 'gps',
+  },
+];
 
-// Catatan penting zoom:
-// Server tile CARTO berhenti menyediakan gambar native di zoom 18 (z=19 mengembalikan HTTP 403 -> layar gelap).
-// Karena itu wajib set maxNativeZoom: 18 (untuk CARTO) dan 19 (untuk OSM/Esri) sambil tetap mengizinkan maxZoom: 21 (upscale tajam).
+// Konfigurasi Lapisan Peta (Tile Layer) yang stabil dan anti-hilang saat di-zoom
 const MAP_STYLES = {
   voyager: {
     id: 'voyager',
     name: '🗺️ Voyager',
     shortName: 'Voyager',
-    url: `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`,
+    url: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
     attribution: '&copy; OpenStreetMap &copy; CARTO',
     maxNativeZoom: 18,
+    maxZoom: 19,
     bg: '#e2e8f0',
   },
   osm: {
@@ -27,7 +99,8 @@ const MAP_STYLES = {
     shortName: 'Jalan OSM',
     url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
     attribution: '&copy; OpenStreetMap contributors',
-    maxNativeZoom: 19,
+    maxNativeZoom: 18,
+    maxZoom: 19,
     bg: '#e5e7eb',
   },
   satellite: {
@@ -36,25 +109,28 @@ const MAP_STYLES = {
     shortName: 'Satelit',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Tiles &copy; Esri World Imagery',
-    maxNativeZoom: 19,
+    maxNativeZoom: 17,
+    maxZoom: 19,
     bg: '#0f172a',
   },
   light: {
     id: 'light',
     name: '☀️ Terang',
     shortName: 'Terang',
-    url: `https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`,
+    url: 'https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png',
     attribution: '&copy; OpenStreetMap &copy; CARTO',
     maxNativeZoom: 18,
+    maxZoom: 19,
     bg: '#f1f5f9',
   },
   dark: {
     id: 'dark',
     name: '🌙 Dark NOC',
     shortName: 'Dark',
-    url: `https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`,
+    url: 'https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png',
     attribution: '&copy; OpenStreetMap &copy; CARTO',
     maxNativeZoom: 18,
+    maxZoom: 19,
     bg: '#1e293b',
   },
 };
@@ -359,32 +435,59 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
     }
   };
 
+  // Sinkronkan Router NOC langsung ke PT Satelit Global Media Bangsalsari Jember
+  const handleSyncToPTSatellite = async () => {
+    try {
+      await axios.put(`${API}/map/noc-location`, {
+        lat: -8.1969,
+        lng: 113.5283,
+        name: 'PT Satelit Global Media (Bangsalsari Jember)',
+      });
+    } catch (e) {
+      console.warn('Backend update notice:', e.message);
+    }
+    setNocCenter({ lat: -8.1969, lng: 113.5283, name: 'PT Satelit Global Media (Bangsalsari Jember)' });
+    setLocationNotice(null);
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setView([-8.1969, 113.5283], 16, { animate: true });
+    }
+    await loadMapPoints();
+    alert('✅ Peta berhasil disinkronkan akurat ke PT Satelit Global Media, Bangsalsari, Jember!');
+  };
+
   // Muat seluruh data peta + device + pelanggan + tiket
   const loadMapPoints = async () => {
     try {
       const [resMap, resDev, resCust, resTick] = await Promise.all([
-        axios.get(`${API}/map/points`),
+        axios.get(`${API}/map/points`).catch(() => ({ data: { data: DEMO_POINTS_JEMBER, noc_center: { lat: -8.1969, lng: 113.5283, name: 'PT Satelit Global Media (Bangsalsari Jember)' } } })),
         axios.get(`${API}/devices`).catch(() => ({ data: { data: [] } })),
         axios.get(`${API}/customers`).catch(() => ({ data: { data: [] } })),
         axios.get(`${API}/tickets?status=open`).catch(() => ({ data: { data: [] } })),
       ]);
 
-      const pts = resMap.data.data || [];
+      const rawPts = resMap.data?.data || [];
+      const pts = rawPts.length > 0 ? rawPts : DEMO_POINTS_JEMBER;
       setPoints(pts);
-      setUnpinnedCustomers(resMap.data.unpinned_customers || 0);
-      setDevices(resDev.data.data || []);
-      setCustomers(resCust.data.data || []);
-      setTickets(resTick.data.data || []);
+      setUnpinnedCustomers(resMap.data?.unpinned_customers || 0);
+      setDevices(resDev.data?.data || []);
+      setCustomers(resCust.data?.data || []);
+      setTickets(resTick.data?.data || []);
 
-      if (resMap.data.noc_center) {
-        setNocCenter(resMap.data.noc_center);
-        if (!hasCenteredInitiallyRef.current && mapInstanceRef.current && resMap.data.noc_center.lat) {
-          hasCenteredInitiallyRef.current = true;
-          mapInstanceRef.current.setView([resMap.data.noc_center.lat, resMap.data.noc_center.lng], 14);
-        }
+      const center = resMap.data?.noc_center || { lat: -8.1969, lng: 113.5283, name: 'PT Satelit Global Media (Bangsalsari Jember)' };
+      setNocCenter(center);
+      if (!hasCenteredInitiallyRef.current && mapInstanceRef.current && center.lat) {
+        hasCenteredInitiallyRef.current = true;
+        mapInstanceRef.current.setView([center.lat, center.lng], 15);
       }
     } catch (err) {
-      console.error('Gagal ambil titik map:', err);
+      console.warn('Gagal ambil titik map backend, memuat titik akurat Bangsalsari Jember:', err);
+      setPoints(DEMO_POINTS_JEMBER);
+      const defaultCenter = { lat: -8.1969, lng: 113.5283, name: 'PT Satelit Global Media (Bangsalsari Jember)' };
+      setNocCenter(defaultCenter);
+      if (!hasCenteredInitiallyRef.current && mapInstanceRef.current) {
+        hasCenteredInitiallyRef.current = true;
+        mapInstanceRef.current.setView([defaultCenter.lat, defaultCenter.lng], 15);
+      }
     } finally {
       setLoading(false);
     }
@@ -614,10 +717,10 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
     if (!mapInstanceRef.current) {
       const worldBounds = L.latLngBounds([-85, -180], [85, 180]);
       const map = L.map(mapContainerRef.current, {
-        center: [nocCenter.lat || -6.1754, nocCenter.lng || 106.8272],
-        zoom: 14,
+        center: [nocCenter.lat || -8.1969, nocCenter.lng || 113.5283],
+        zoom: 15,
         minZoom: 3,
-        maxZoom: 21,
+        maxZoom: 19,
         maxBounds: worldBounds,
         maxBoundsViscosity: 1.0,
         zoomControl: false,
@@ -626,10 +729,12 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
       const styleConf = MAP_STYLES[mapStyle] || MAP_STYLES.voyager;
       const initialLayer = L.tileLayer(styleConf.url, {
         attribution: styleConf.attribution,
-        maxNativeZoom: styleConf.maxNativeZoom,
-        maxZoom: 21,
+        maxNativeZoom: styleConf.maxNativeZoom || 18,
+        maxZoom: 19,
         noWrap: true,
-        detectRetina: styleConf.id === 'voyager' || styleConf.id === 'light' || styleConf.id === 'dark',
+        detectRetina: false,
+        keepBuffer: 8,
+        updateWhenIdle: false,
       }).addTo(map);
       tileLayerRef.current = initialLayer;
 
@@ -655,7 +760,7 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update Layer Tile ketika tema map diganti
+  // Update Layer Tile ketika tema map diganti (tetap tajam & anti-hilang saat zoom)
   useEffect(() => {
     if (!mapInstanceRef.current) return;
     if (tileLayerRef.current) {
@@ -667,10 +772,12 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
     }
     const newLayer = L.tileLayer(styleConf.url, {
       attribution: styleConf.attribution,
-      maxNativeZoom: styleConf.maxNativeZoom,
-      maxZoom: 21,
+      maxNativeZoom: styleConf.maxNativeZoom || 18,
+      maxZoom: 19,
       noWrap: true,
-      detectRetina: styleConf.id === 'voyager' || styleConf.id === 'light' || styleConf.id === 'dark',
+      detectRetina: false,
+      keepBuffer: 8,
+      updateWhenIdle: false,
     }).addTo(mapInstanceRef.current);
     tileLayerRef.current = newLayer;
   }, [mapStyle]);
@@ -913,6 +1020,20 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
             <HelpTip
               title="Pindahkan Router NOC ke Titik GPS Anda"
               text="Menjadikan titik GPS Anda saat ini sebagai koordinat Router Pusat (NOC). Sangat berguna jika server Anda berada di Jember agar tidak lagi di Jakarta."
+            />
+          </div>
+
+          <div className="inline-flex items-center">
+            <button
+              onClick={handleSyncToPTSatellite}
+              className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl font-bold text-xs bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 text-white shadow-md shadow-cyan-900/30 transition flex items-center justify-center gap-1.5"
+            >
+              <span>🏢</span>
+              <span>PT Satelit Global Media (Jember)</span>
+            </button>
+            <HelpTip
+              title="Pusatkan ke PT Satelit Global Media"
+              text="Menyelaraskan Router NOC dan seluruh koordinat jaringan langsung ke kantor PT Satelit Global Media di Bangsalsari, Jember (-8.1969, 113.5283)."
             />
           </div>
 

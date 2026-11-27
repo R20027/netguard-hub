@@ -370,12 +370,13 @@ Modul keamanan dan integritas data untuk memastikan server aman saat diakses dar
 - **Halaman Login Admin:**
   Saat pertama kali web dibuka dari browser laptop maupun HP, pengguna diwajibkan login terlebih dahulu.
   - **Username Default:** `admin`
-  - **Password Default:** `admin123`
-- **Proteksi 3x Salah Password (Lockout 60 Detik):**
+  - **Password Default:** `rois_admin`
+- **Proteksi Anti-Bot Bertingkat (Salah 3x Jeda 60s, Ulangi Salah 3x Jeda 3m):**
   Untuk mencegah serangan bot, tebakan sandi (*brute-force*), atau penyusup LAN:
   1. Percobaan salah ke-1 dan ke-2: Sistem memberi peringatan sisa kesempatan.
-  2. Percobaan salah ke-3: **IP penyerang langsung dikunci otomatis selama 60 detik (1 menit)** dengan status HTTP 429 *Too Many Requests*.
-  3. Selama masa jeda 60 detik, form login dinonaktifkan dengan **timer hitung mundur (countdown)** visual. Server menolak semua upaya login dari IP tersebut hingga timer selesai.
+  2. Percobaan salah ke-3 pertama: **IP penyerang dikunci selama 60 detik (1 menit)** dengan status HTTP 429 *Too Many Requests*.
+  3. Jika setelah jeda 1 menit selesai penyerang tetap memasukkan password salah 3 kali lagi: **IP dikunci lebih lama selama 3 menit (180 detik)**.
+  4. Selama masa jeda, form login dinonaktifkan dengan **timer hitung mundur (countdown)** visual. Server menolak semua upaya login dari IP tersebut hingga timer selesai.
 - **Session Token Aman:**
   Setelah login berhasil, sistem menghasilkan token unik 64-karakter kriptografis yang tersimpan aman di browser (*localStorage*) dengan masa kedaluwarsa 24 jam. Tombol **🚪 Keluar (Logout)** tersedia di pojok kanan atas untuk keluar kapan saja.
 

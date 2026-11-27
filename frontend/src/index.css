@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Leaflet map tile rendering fixes: cegah gambar pecah/hilang saat zoom */
+.leaflet-container img {
+  max-width: none !important;
+  max-height: none !important;
+}
+
+.leaflet-tile {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+.leaflet-tile-container img {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}

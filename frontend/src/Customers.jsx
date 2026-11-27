@@ -12,19 +12,20 @@ function MiniMapPicker({ lat, lng, nocCenter, onPick }) {
 
   useEffect(() => {
     if (!containerRef.current) return;
-    const initLat = lat && !isNaN(lat) ? Number(lat) : nocCenter.lat || -6.1754;
-    const initLng = lng && !isNaN(lng) ? Number(lng) : nocCenter.lng || 106.8272;
+    const initLat = lat && !isNaN(lat) ? Number(lat) : nocCenter.lat || -8.1969;
+    const initLng = lng && !isNaN(lng) ? Number(lng) : nocCenter.lng || 113.5283;
 
     if (!mapRef.current) {
       const map = L.map(containerRef.current, {
         center: [initLat, initLng],
         zoom: 16,
-        maxZoom: 21,
+        maxZoom: 19,
       });
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap',
-        maxNativeZoom: 19,
-        maxZoom: 21,
+        maxNativeZoom: 18,
+        maxZoom: 19,
+        detectRetina: false,
       }).addTo(map);
 
       const marker = L.circleMarker([initLat, initLng], {
@@ -70,7 +71,7 @@ function MiniMapPicker({ lat, lng, nocCenter, onPick }) {
 export default function Customers({ onSwitchTab }) {
   const [customers, setCustomers] = useState([]);
   const [profiles, setProfiles] = useState(['10Mbps', '20Mbps', '50Mbps', '100Mbps', 'default']);
-  const [nocCenter, setNocCenter] = useState({ lat: -6.1754, lng: 106.8272 });
+  const [nocCenter, setNocCenter] = useState({ lat: -8.1969, lng: 113.5283 });
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -965,13 +966,13 @@ export default function Customers({ onSwitchTab }) {
 
                 <div className="grid grid-cols-2 gap-2">
                   <input
-                    placeholder="Latitude (mis: -6.1754)"
+                    placeholder="Latitude (mis: -8.1969)"
                     value={form.lat}
                     onChange={(e) => setForm({ ...form, lat: e.target.value })}
                     className="bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white font-mono"
                   />
                   <input
-                    placeholder="Longitude (mis: 106.8272)"
+                    placeholder="Longitude (mis: 113.5283)"
                     value={form.lng}
                     onChange={(e) => setForm({ ...form, lng: e.target.value })}
                     className="bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white font-mono"

@@ -83,4 +83,5 @@ Jika saat login muncul pesan *"Endpoint API tidak ditemukan"*:
   3. Skrip `start-all.bat` kini otomatis membersihkan proses lama di port 8080 dan mengompilasi kode terbaru.
   4. Buka browser dan login dengan:
      * **Username:** `admin`
-     * **Password:** `admin123`
+     * **Password:** `rois_admin`
+     * **Proteksi Anti-Bot:** Salah password 3 kali jeda 60 detik (1 menit). Jika salah 3 kali lagi jeda 3 menit (180 detik).

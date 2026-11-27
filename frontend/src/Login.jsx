@@ -127,8 +127,10 @@ export default function Login({ onLoginSuccess }) {
               </div>
               <p>{errorMsg}</p>
               {lockoutSeconds > 0 && (
-                <div className="mt-2 text-center py-1 bg-black/40 rounded-lg font-mono font-bold text-rose-300 text-sm">
-                  Tunggu {lockoutSeconds} detik...
+                <div className="mt-2 text-center py-1.5 bg-black/40 rounded-lg font-mono font-bold text-rose-300 text-sm">
+                  {lockoutSeconds > 60
+                    ? `Tunggu ${Math.floor(lockoutSeconds / 60)} menit ${lockoutSeconds % 60} detik...`
+                    : `Tunggu ${lockoutSeconds} detik...`}
                 </div>
               )}
             </div>
@@ -150,7 +152,9 @@ export default function Login({ onLoginSuccess }) {
                 <span>Memverifikasi...</span>
               </span>
             ) : lockoutSeconds > 0 ? (
-              `Terkunci (${lockoutSeconds}s)`
+              lockoutSeconds > 60
+                ? `Terkunci (${Math.floor(lockoutSeconds / 60)}m ${lockoutSeconds % 60}s)`
+                : `Terkunci (${lockoutSeconds}s)`
             ) : (
               'Masuk ke GuardHub'
             )}
@@ -176,10 +180,10 @@ export default function Login({ onLoginSuccess }) {
         <div className="pt-2 border-t border-slate-800/80 space-y-2 text-[11px] text-slate-500">
           <div className="flex items-center justify-between text-slate-400">
             <span>Login Default:</span>
-            <span className="font-mono text-cyan-400 font-semibold">admin / admin123</span>
+            <span className="font-mono text-cyan-400 font-semibold">admin / rois_admin</span>
           </div>
           <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/60 text-[10px] text-slate-400 leading-normal">
-            🛡️ <strong>Proteksi Anti-Bot:</strong> Salah password 3 kali berturut-turut akan mengunci akses login selama 1 menit (60 detik) untuk melindungi router dan server dari serangan brute-force.
+            🛡️ <strong>Proteksi Anti-Bot:</strong> Salah password 3 kali pertama dijeda 1 menit (60 detik). Jika salah 3 kali lagi, sistem menjeda selama 3 menit (180 detik) untuk melindungi router dan server.
           </div>
         </div>
       </div>
