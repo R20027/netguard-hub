@@ -155,6 +155,21 @@ export default function Login({ onLoginSuccess }) {
               'Masuk ke GuardHub'
             )}
           </button>
+
+          <div className="pt-1 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                const demoToken = 'demo_' + Date.now();
+                localStorage.setItem('guardhub_token', demoToken);
+                localStorage.setItem('guardhub_user', 'admin (Demo)');
+                onLoginSuccess('admin');
+              }}
+              className="text-[11px] text-cyan-400 hover:text-cyan-300 underline font-semibold transition"
+            >
+              🚀 Buka Langsung (Mode Demo / Preview Web)
+            </button>
+          </div>
         </form>
 
         {/* Petunjuk Default Login & Keamanan Bot */}

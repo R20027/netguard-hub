@@ -1,14 +1,19 @@
 import axios from 'axios';
 
+export const isGitHubPages = typeof window !== 'undefined' && window.location.hostname.endsWith('github.io');
+
 // Helper URL API Dinamis NetGuard Hub
-// Jika web dibuka langsung dari server Go (:8080), gunakan endpoint relatif (/api/v1) sehingga bebas CORS & akurat di LAN.
-// Jika dibuka lewat Vite dev server (:5173), arahkan otomatis ke hostname yang sama di port :8080.
 const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
   if (typeof window !== 'undefined' && window.location) {
     const { protocol, hostname, port } = window.location;
+    if (hostname.endsWith('github.io')) {
+      const custom = localStorage.getItem('guardhub_backend_url');
+      if (custom) return `${custom.replace(/\/+$/, '')}/api/v1`;
+      return '/api/v1';
+    }
     if (port === '8080' || port === '' || port === '80' || port === '443') {
       return '/api/v1';
     }

@@ -751,10 +751,10 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
         p.location_source === 'noc_router'
           ? '📍 Lokasi Router NOC'
           : p.location_source === 'device'
-          ? '📍 Lokasi Switch/Node'
-          : p.location_source === 'customer'
-          ? '📍 Lokasi Rumah Pelanggan'
-          : '📍 Koordinat GPS Akurat';
+            ? '📍 Lokasi Switch/Node'
+            : p.location_source === 'customer'
+              ? '📍 Lokasi Rumah Pelanggan'
+              : '📍 Koordinat GPS Akurat';
 
       const popupDiv = document.createElement('div');
       popupDiv.className = 'p-1 font-sans';
@@ -1092,11 +1092,10 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
             <div className="inline-flex items-center">
               <button
                 onClick={() => setShowTopology((v) => !v)}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${
-                  showTopology
+                className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${showTopology
                     ? 'bg-cyan-950 text-cyan-300 border-cyan-700'
                     : 'bg-slate-950 text-slate-400 border-slate-800'
-                }`}
+                  }`}
               >
                 🔗 Garis Topologi: {showTopology ? 'ON' : 'OFF'}
               </button>
@@ -1293,11 +1292,10 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
               key={d.id}
               onClick={() => focusOnPoint({ id: d.id, lat: d.lat, lng: d.lng, type: 'device' })}
               title={`Fokus ke ${d.name} (${d.ip})`}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition shadow-sm ${
-                d.status === 'down'
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition shadow-sm ${d.status === 'down'
                   ? 'bg-rose-950/80 hover:bg-rose-900 border-rose-700 text-rose-300'
                   : 'bg-slate-950 hover:bg-slate-850 border-slate-800 text-slate-200'
-              }`}
+                }`}
             >
               <span className={`w-2 h-2 rounded-full ${d.status === 'down' ? 'bg-rose-500 animate-ping' : 'bg-emerald-400'}`}></span>
               <span>{d.name}</span>
@@ -1311,9 +1309,8 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
 
       {/* MAP WRAPPER WITH CONTROLS OVERLAY */}
       <div
-        className={`relative border rounded-2xl overflow-hidden shadow-2xl h-[520px] md:h-[600px] ${
-          pinMode ? 'border-amber-500 ring-2 ring-amber-500/40 cursor-crosshair' : 'border-slate-800'
-        }`}
+        className={`relative border rounded-2xl overflow-hidden shadow-2xl h-[520px] md:h-[600px] ${pinMode ? 'border-amber-500 ring-2 ring-amber-500/40 cursor-crosshair' : 'border-slate-800'
+          }`}
         style={{ backgroundColor: (MAP_STYLES[mapStyle] || MAP_STYLES.voyager).bg }}
       >
         {/* MOBILE CONTROLS OVERLAY */}

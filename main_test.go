@@ -903,3 +903,58 @@ func TestAuthLoginRateLimiter(t *testing.T) {
 		t.Fatalf("expected 401 after logout, got %d %s", wCheck2.Code, wCheck2.Body.String())
 	}
 }
+
+func getAuthToken(t *testing.T, r *gin.Engine, ip string) string {
+	wLogin := doReq(r, "POST", "/api/v1/auth/login", map[string]string{
+		"username": "admin", "password": "admin123",
+	}, ip)
+	var loginResp struct {
+		Token string `json:"token"`
+	}
+	if err := json.Unmarshal(wLogin.Body.Bytes(), &loginResp); err != nil || loginResp.Token == "" {
+		t.Fatalf("failed to get auth token: %v %s", err, wLogin.Body.String())
+	}
+	return loginResp.Token
+}
+
+func TestGatewayDetectionAndBackupExportImport(t *testing.T) {
+	r, _ := setupTestEnv(t)
+	token := getAuthToken(t, r, "192.168.100.99:3333")
+
+	// 1. Test Gateway Detection
+	reqGW, _ := http.NewRequest("GET", "/api/v1/mikrotik/detect-gateway", nil)
+	reqGW.Header.Set("Authorization", "Bearer "+token)
+	reqGW.RemoteAddr = "192.168.100.99:3333"
+	wGW := httptest.NewRecorder()
+	r.ServeHTTP(wGW, reqGW)
+	if wGW.Code != http.StatusOK || !strings.Contains(wGW.Body.String(), "suggested_ips") {
+		t.Fatalf("detect gateway failed: %d %s", wGW.Code, wGW.Body.String())
+	}
+
+	// 2. Test Backup Export
+	reqExport, _ := http.NewRequest("GET", "/api/v1/backup/export", nil)
+	reqExport.Header.Set("Authorization", "Bearer "+token)
+	reqExport.RemoteAddr = "192.168.100.99:3333"
+	wExport := httptest.NewRecorder()
+	r.ServeHTTP(wExport, reqExport)
+	if wExport.Code != http.StatusOK || !strings.Contains(wExport.Body.String(), `"version":"1.0"`) {
+		t.Fatalf("backup export failed: %d %s", wExport.Code, wExport.Body.String())
+	}
+
+	// 3. Test Backup Import
+	var backupData map[string]interface{}
+	if err := json.Unmarshal(wExport.Body.Bytes(), &backupData); err != nil {
+		t.Fatalf("failed to parse exported backup: %v", err)
+	}
+
+	bodyImport, _ := json.Marshal(backupData)
+	reqImport, _ := http.NewRequest("POST", "/api/v1/backup/import", bytes.NewBuffer(bodyImport))
+	reqImport.Header.Set("Authorization", "Bearer "+token)
+	reqImport.Header.Set("Content-Type", "application/json")
+	reqImport.RemoteAddr = "192.168.100.99:3333"
+	wImport := httptest.NewRecorder()
+	r.ServeHTTP(wImport, reqImport)
+	if wImport.Code != http.StatusOK || !strings.Contains(wImport.Body.String(), "berhasil dipulihkan") {
+		t.Fatalf("backup import failed: %d %s", wImport.Code, wImport.Body.String())
+	}
+}

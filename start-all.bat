@@ -13,6 +13,11 @@ for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4" ^| findstr /v 
 :found_ip
 set "LOCAL_IP=%LOCAL_IP: =%"
 
+:: Hentikan proses lama di port 8080 agar kode terbaru otomatis aktif
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8080" ^| findstr "LISTENING"') do (
+    taskkill /F /PID %%a >nul 2>&1
+)
+
 echo [1/2] Menjalankan NetGuard Hub Server (Web UI + Backend API :8080)...
 start "NetGuard Hub Server" cmd /k "go run ."
 

@@ -233,6 +233,12 @@ func setupRouter() *gin.Engine {
 			protected.POST("/mikrotik/exec", ExecMikrotikCommand)
 			protected.GET("/mikrotik/logs", GetMikrotikLogs)
 			protected.POST("/mikrotik/setup-domain", SetupMikrotikDomain)
+			protected.GET("/mikrotik/detect-gateway", DetectMikrotikGatewayHandler)
+
+			// Cloud & Database Backup
+			protected.GET("/backup/export", ExportBackupHandler)
+			protected.POST("/backup/import", ImportBackupHandler)
+			protected.GET("/backup/download-db", DownloadDatabaseHandler)
 		}
 	}
 
@@ -3051,4 +3057,276 @@ func SetupMikrotikDomain(c *gin.Context) {
 		"ip":      localIP,
 		"message": fmt.Sprintf("Domain '%s' berhasil didaftarkan di DNS MikroTik ke IP %s! Semua HP & laptop di Wi-Fi bisa membuka http://%s:8080", domain, localIP, domain),
 	})
+}
+
+// ==================== AUTO-DETECT GATEWAY ROUTER ====================
+
+func detectDefaultGateway() (string, string, []string) {
+	primaryIP := getOutboundLANIP()
+	gateway := ""
+
+	// 1. Coba deteksi via route table di Windows
+	if runtime.GOOS == "windows" {
+		cmd := exec.Command("cmd", "/c", "route print 0.0.0.0")
+		if out, err := cmd.Output(); err == nil {
+			lines := strings.Split(string(out), "\n")
+			for _, line := range lines {
+				fields := strings.Fields(line)
+				if len(fields) >= 5 && fields[0] == "0.0.0.0" && fields[1] == "0.0.0.0" {
+					gw := fields[2]
+					if net.ParseIP(gw) != nil && gw != "0.0.0.0" {
+						gateway = gw
+						break
+					}
+				}
+			}
+		}
+	} else {
+		// Linux / macOS
+		cmd := exec.Command("sh", "-c", "ip route show default 2>/dev/null | awk '{print $3}'")
+		if out, err := cmd.Output(); err == nil {
+			gw := strings.TrimSpace(string(out))
+			if net.ParseIP(gw) != nil {
+				gateway = gw
+			}
+		}
+	}
+
+	// 2. Fallback jika route print tidak menghasilkan gateway:
+	// Turunkan gateway dari subnet primaryIP (contoh: 192.168.101.12 -> 192.168.101.1)
+	if gateway == "" && primaryIP != "" && primaryIP != "127.0.0.1" {
+		parts := strings.Split(primaryIP, ".")
+		if len(parts) == 4 {
+			gateway = fmt.Sprintf("%s.%s.%s.1", parts[0], parts[1], parts[2])
+		}
+	}
+
+	suggested := []string{}
+	seen := map[string]bool{}
+
+	if gateway != "" {
+		suggested = append(suggested, gateway)
+		seen[gateway] = true
+	}
+	common := []string{"10.10.1.1", "192.168.1.1", "192.168.88.1", "10.0.0.1"}
+	for _, ip := range common {
+		if !seen[ip] {
+			suggested = append(suggested, ip)
+			seen[ip] = true
+		}
+	}
+
+	return gateway, primaryIP, suggested
+}
+
+func DetectMikrotikGatewayHandler(c *gin.Context) {
+	gateway, ifaceIP, suggested := detectDefaultGateway()
+	c.JSON(http.StatusOK, gin.H{
+		"detected_gateway": gateway,
+		"interface_ip":    ifaceIP,
+		"suggested_ips":   suggested,
+		"message":         fmt.Sprintf("Gateway router lokal terdeteksi: %s", gateway),
+	})
+}
+
+// ==================== CLOUD DATABASE BACKUP & RESTORE ====================
+
+func ExportBackupHandler(c *gin.Context) {
+	backup := gin.H{
+		"version":    "1.0",
+		"timestamp":  time.Now().Format(time.RFC3339),
+		"app":        "NetGuard Hub",
+		"created_by": "admin",
+	}
+
+	// 1. Settings
+	settings := map[string]string{}
+	if rows, err := DB.Query("SELECT key, value FROM settings"); err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var k, v string
+			if err := rows.Scan(&k, &v); err == nil {
+				settings[k] = v
+			}
+		}
+	}
+	backup["settings"] = settings
+
+	// 2. Monitored Devices
+	devices := []map[string]interface{}{}
+	if rows, err := DB.Query("SELECT id, name, ip, status, lat, lng FROM monitored_devices"); err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var id, name, ip, status string
+			var lat, lng *float64
+			if err := rows.Scan(&id, &name, &ip, &status, &lat, &lng); err == nil {
+				devices = append(devices, map[string]interface{}{
+					"id":     id,
+					"name":   name,
+					"ip":     ip,
+					"status": status,
+					"lat":    lat,
+					"lng":    lng,
+				})
+			}
+		}
+	}
+	backup["devices"] = devices
+
+	// 3. Customers
+	customers := []map[string]interface{}{}
+	if rows, err := DB.Query("SELECT id, name, address, phone, package, pppoe_user, pppoe_pass, ip_address, status, due_date, lat, lng FROM customers"); err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var id int
+			var name, address, phone, pkg, user, pass, ip, status, due string
+			var lat, lng *float64
+			if err := rows.Scan(&id, &name, &address, &phone, &pkg, &user, &pass, &ip, &status, &due, &lat, &lng); err == nil {
+				customers = append(customers, map[string]interface{}{
+					"id":         id,
+					"name":       name,
+					"address":    address,
+					"phone":      phone,
+					"package":    pkg,
+					"pppoe_user": user,
+					"pppoe_pass": pass,
+					"ip_address": ip,
+					"status":     status,
+					"due_date":   due,
+					"lat":        lat,
+					"lng":        lng,
+				})
+			}
+		}
+	}
+	backup["customers"] = customers
+
+	// 4. Invoices
+	invoices := []map[string]interface{}{}
+	if rows, err := DB.Query("SELECT id, customer_id, amount, status, due_date, paid_at FROM invoices"); err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var id, custID int
+			var amount float64
+			var status, due string
+			var paidAt *string
+			if err := rows.Scan(&id, &custID, &amount, &status, &due, &paidAt); err == nil {
+				invoices = append(invoices, map[string]interface{}{
+					"id":          id,
+					"customer_id": custID,
+					"amount":      amount,
+					"status":      status,
+					"due_date":    due,
+					"paid_at":     paidAt,
+				})
+			}
+		}
+	}
+	backup["invoices"] = invoices
+
+	// 5. Tickets
+	tickets := []map[string]interface{}{}
+	if rows, err := DB.Query("SELECT id, title, priority, status, device_id, created_at, lat, lng FROM tickets"); err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var id int
+			var title, priority, status, devID, createdAt string
+			var lat, lng *float64
+			if err := rows.Scan(&id, &title, &priority, &status, &devID, &createdAt, &lat, &lng); err == nil {
+				tickets = append(tickets, map[string]interface{}{
+					"id":         id,
+					"title":      title,
+					"priority":   priority,
+					"status":     status,
+					"device_id":  devID,
+					"created_at": createdAt,
+					"lat":        lat,
+					"lng":        lng,
+				})
+			}
+		}
+	}
+	backup["tickets"] = tickets
+
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=guardhub_backup_%s.json", time.Now().Format("20060102_150405")))
+	c.JSON(http.StatusOK, backup)
+}
+
+func ImportBackupHandler(c *gin.Context) {
+	var payload struct {
+		Settings  map[string]string        `json:"settings"`
+		Devices   []map[string]interface{} `json:"devices"`
+		Customers []map[string]interface{} `json:"customers"`
+		Invoices  []map[string]interface{} `json:"invoices"`
+		Tickets   []map[string]interface{} `json:"tickets"`
+	}
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Format file cadangan tidak valid: " + err.Error()})
+		return
+	}
+
+	// Simpan Settings
+	for k, v := range payload.Settings {
+		_, _ = DB.Exec("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", k, v)
+	}
+
+	// Simpan Devices
+	for _, d := range payload.Devices {
+		id, _ := d["id"].(string)
+		name, _ := d["name"].(string)
+		ip, _ := d["ip"].(string)
+		status, _ := d["status"].(string)
+		lat, _ := d["lat"].(float64)
+		lng, _ := d["lng"].(float64)
+		if id != "" {
+			_, _ = DB.Exec("INSERT OR REPLACE INTO monitored_devices (id, name, ip, status, lat, lng) VALUES (?, ?, ?, ?, ?, ?)", id, name, ip, status, lat, lng)
+		}
+	}
+
+	// Simpan Customers
+	for _, cust := range payload.Customers {
+		idFloat, _ := cust["id"].(float64)
+		id := int(idFloat)
+		name, _ := cust["name"].(string)
+		addr, _ := cust["address"].(string)
+		phone, _ := cust["phone"].(string)
+		pkg, _ := cust["package"].(string)
+		user, _ := cust["pppoe_user"].(string)
+		pass, _ := cust["pppoe_pass"].(string)
+		ip, _ := cust["ip_address"].(string)
+		status, _ := cust["status"].(string)
+		due, _ := cust["due_date"].(string)
+		lat, _ := cust["lat"].(float64)
+		lng, _ := cust["lng"].(float64)
+
+		if user != "" {
+			if id > 0 {
+				_, _ = DB.Exec(`INSERT OR REPLACE INTO customers 
+					(id, name, address, phone, package, pppoe_user, pppoe_pass, ip_address, status, due_date, lat, lng)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+					id, name, addr, phone, pkg, user, pass, ip, status, due, lat, lng)
+			} else {
+				_, _ = DB.Exec(`INSERT INTO customers 
+					(name, address, phone, package, pppoe_user, pppoe_pass, ip_address, status, due_date, lat, lng)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+					name, addr, phone, pkg, user, pass, ip, status, due, lat, lng)
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":   "✅ Data cadangan berhasil dipulihkan secara penuh ke database!",
+		"timestamp": time.Now().Format(time.RFC3339),
+	})
+}
+
+func DownloadDatabaseHandler(c *gin.Context) {
+	dbPath := "./netguard.db"
+	if _, err := os.Stat(dbPath); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "File database belum tersedia"})
+		return
+	}
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=netguard_backup_%s.db", time.Now().Format("20060102_150405")))
+	c.File(dbPath)
 }

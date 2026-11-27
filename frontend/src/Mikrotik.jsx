@@ -21,6 +21,54 @@ export default function Mikrotik({ onConnectedChange }) {
     name: '', password: '', profile: 'default', remote_address: '', comment: '',
   });
 
+  // Auto-Deteksi Gateway Router & Cloud Backup State
+  const [detectedGateway, setDetectedGateway] = useState(null);
+  const [detectingGw, setDetectingGw] = useState(false);
+  const [backupLoading, setBackupLoading] = useState(false);
+
+  const detectRouterGateway = async () => {
+    setDetectingGw(true);
+    try {
+      const res = await axios.get(`${API}/mikrotik/detect-gateway`);
+      if (res.data) {
+        setDetectedGateway(res.data);
+        if (res.data.detected_gateway && (!config.host || config.host === '192.168.88.1')) {
+          setConfig((prev) => ({ ...prev, host: res.data.detected_gateway }));
+        }
+      }
+    } catch (err) {
+      console.error('Gagal deteksi gateway:', err);
+    } finally {
+      setDetectingGw(false);
+    }
+  };
+
+  const handleExportBackup = () => {
+    window.open(`${API}/backup/export`, '_blank');
+  };
+
+  const handleDownloadDB = () => {
+    window.open(`${API}/backup/download-db`, '_blank');
+  };
+
+  const handleImportBackup = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!confirm(`Pulihkan seluruh database dari file cadangan "${file.name}"? Data lama akan disinkronkan.`)) return;
+    setBackupLoading(true);
+    try {
+      const text = await file.text();
+      const json = JSON.parse(text);
+      const res = await axios.post(`${API}/backup/import`, json);
+      alert(res.data?.message || 'Data berhasil dipulihkan!');
+      loadConfig();
+    } catch (err) {
+      alert('Gagal memulihkan cadangan: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setBackupLoading(false);
+    }
+  };
+
   const loadConfig = async () => {
     try {
       const res = await axios.get(`${API}/mikrotik/config`);
@@ -226,6 +274,7 @@ export default function Mikrotik({ onConnectedChange }) {
   useEffect(() => {
     loadConfig();
     testConnection();
+    detectRouterGateway();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -787,25 +836,93 @@ export default function Mikrotik({ onConnectedChange }) {
         </div>
       )}
 
-      {/* TAB 5: PENGATURAN KONEKSI */}
+      {/* TAB 5: PENGATURAN KONEKSI & CLOUD BACKUP */}
       {subTab === 'config' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-800 shadow-xl">
-            <h3 className="text-lg font-bold text-white mb-4">⚙️ Konfigurasi Target MikroTik</h3>
+          <div className="lg:col-span-2 bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-800 shadow-xl space-y-4">
+            <div>
+              <h3 className="text-lg font-bold text-white">⚙️ Konfigurasi Target MikroTik</h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Hubungkan NetGuard Hub ke router MikroTik mana saja (IP lokal, kantor, publik, VPN, atau domain DDNS).
+              </p>
+            </div>
+
+            {/* Banner Penjelasan Bebas IP */}
+            <div className="bg-cyan-950/40 border border-cyan-800/70 rounded-xl p-3 text-xs text-cyan-200 leading-relaxed">
+              🌐 <strong>Bebas Menggunakan IP Apa Saja:</strong> NetGuard Hub tidak mewajibkan IP tertentu (tidak harus <code className="text-white font-mono bg-slate-900 px-1 py-0.5 rounded">192.168.88.1</code>). Anda bisa memasukkan IP router kantor Anda (<code className="text-white font-mono bg-slate-900 px-1 py-0.5 rounded">10.10.1.1</code>), IP gateway lokal, IP VPN WireGuard, IP Publik statis, maupun domain Cloud MikroTik (<code className="text-white font-mono bg-slate-900 px-1 py-0.5 rounded">*.mynetname.net</code>).
+            </div>
+
             <form onSubmit={saveConfig} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    IP Address / Hostname / Domain MikroTik
-                  </label>
+                  <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                    <label className="block text-xs font-bold text-slate-200">
+                      IP Address / Hostname / Domain MikroTik:
+                    </label>
+                    <button
+                      type="button"
+                      onClick={detectRouterGateway}
+                      disabled={detectingGw}
+                      className="text-[11px] px-2.5 py-1 rounded-lg bg-emerald-950 hover:bg-emerald-900 border border-emerald-700 text-emerald-300 font-bold transition flex items-center gap-1 shadow-sm"
+                    >
+                      {detectingGw ? (
+                        <>
+                          <span className="w-3 h-3 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></span>
+                          <span>Mendeteksi...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>🔍</span>
+                          <span>Auto-Deteksi Gateway Komputer</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                   <input
                     type="text"
-                    placeholder="Contoh: 192.168.88.1, 10.10.1.1, atau xxxxx.sn.mynetname.net"
+                    placeholder="Ketik IP apa saja (contoh: 10.10.1.1 atau 192.168.1.1)"
                     value={config.host}
                     onChange={(e) => setConfig({ ...config, host: e.target.value })}
                     className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none"
                     required
                   />
+
+                  {/* Quick Preset IP Chips */}
+                  <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] text-slate-400 font-semibold">⚡ Pilihan Cepat:</span>
+                    {detectedGateway?.detected_gateway && (
+                      <button
+                        type="button"
+                        onClick={() => setConfig({ ...config, host: detectedGateway.detected_gateway })}
+                        title="Isi dengan default gateway router yang terhubung ke komputer ini saat ini"
+                        className="px-2 py-0.5 rounded-lg bg-emerald-950 border border-emerald-700 text-emerald-300 text-[11px] font-mono font-bold hover:bg-emerald-900 transition flex items-center gap-1"
+                      >
+                        <span>✓ Gateway:</span>
+                        <span>{detectedGateway.detected_gateway}</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setConfig({ ...config, host: '10.10.1.1' })}
+                      className="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-cyan-300 text-[11px] font-mono hover:bg-slate-800 transition"
+                    >
+                      10.10.1.1 (Kantor / Boss)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfig({ ...config, host: '192.168.1.1' })}
+                      className="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-300 text-[11px] font-mono hover:bg-slate-800 transition"
+                    >
+                      192.168.1.1
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfig({ ...config, host: '192.168.88.1' })}
+                      className="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-400 text-[11px] font-mono hover:bg-slate-800 transition"
+                    >
+                      192.168.88.1
+                    </button>
+                  </div>
                 </div>
 
                 <div>
@@ -891,41 +1008,86 @@ export default function Mikrotik({ onConnectedChange }) {
             </form>
           </div>
 
-          <div className="bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-between space-y-4">
+          <div className="bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-800 shadow-xl space-y-5">
+            {/* FITUR CLOUD DATABASE BACKUP */}
             <div>
-              <h3 className="text-base font-bold mb-3 flex items-center gap-2 text-amber-400">
-                <span>💡 Panduan Koneksi RouterOS</span>
+              <h3 className="text-base font-bold mb-1 text-white flex items-center gap-2">
+                <span>☁️</span>
+                <span>Penyimpanan Online &amp; Cadangan Cloud</span>
               </h3>
-              <ul className="text-xs text-slate-300 space-y-2 list-disc list-inside bg-slate-950/70 p-3 rounded-xl border border-slate-800">
-                <li><strong>Jaringan Lokal:</strong> Gunakan IP LAN router (misal <code className="text-cyan-400">192.168.88.1</code>).</li>
-                <li><strong>Remote VPN:</strong> Gunakan IP WireGuard / SSTP / DDNS router.</li>
-                <li><strong>Aktifkan API:</strong> Pastikan di Winbox menu IP &rarr; Services layanan <code className="text-cyan-400">api (8728)</code> berstatus aktif.</li>
-              </ul>
+              <p className="text-xs text-slate-400 mb-3 leading-relaxed">
+                Unduh atau pulihkan database Anda kapan saja secara gratis agar data tiket, pelanggan, dan setting selalu aman di cloud.
+              </p>
 
-              <div className="mt-4 pt-4 border-t border-slate-800">
-                <h4 className="text-sm font-bold text-cyan-400 mb-1">
-                  🌐 Domain Lokal <code className="text-white">guardhub.com</code>
-                </h4>
-                <p className="text-xs text-slate-400 mb-3">
-                  Daftarkan DNS static di MikroTik agar semua HP &amp; laptop di jaringan Wi-Fi otomatis bisa membuka web via <strong className="text-white">http://guardhub.com:8080</strong> tanpa aplikasi tambahan.
-                </p>
-                <div className="flex items-center">
-                  <button
-                    type="button"
-                    onClick={setupDomainOnMikrotik}
-                    disabled={loading || !testResult?.connected}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 disabled:opacity-50 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition shadow-lg shadow-cyan-600/20 flex items-center justify-center gap-2"
-                  >
-                    <span>🚀</span>
-                    <span>Pasang DNS guardhub.com ke MikroTik</span>
-                  </button>
-                  <HelpTip
-                    title="Daftarkan guardhub.com di DNS MikroTik"
-                    text="Menulis entri DNS Static di router MikroTik (/ip dns static) agar domain guardhub.com langsung mengarah ke IP server lokal Anda."
-                    tip="Router harus terhubung (Online) sebelum tombol ini ditekan."
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={handleExportBackup}
+                  className="w-full py-2 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-cyan-700 text-cyan-300 text-xs font-semibold transition flex items-center justify-between"
+                >
+                  <span className="flex items-center gap-2">
+                    <span>💾</span>
+                    <span>Download Cadangan Lengkap (.json)</span>
+                  </span>
+                  <span>&darr;</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadDB}
+                  className="w-full py-2 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-emerald-700 text-emerald-300 text-xs font-semibold transition flex items-center justify-between"
+                >
+                  <span className="flex items-center gap-2">
+                    <span>📦</span>
+                    <span>Download File SQLite (netguard.db)</span>
+                  </span>
+                  <span>&darr;</span>
+                </button>
+
+                <div className="pt-1">
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                    Pulihkan / Restore Data dari File Cadangan (.json):
+                  </label>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportBackup}
+                    disabled={backupLoading}
+                    className="block w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-cyan-950 file:text-cyan-300 hover:file:bg-cyan-900 cursor-pointer"
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Panduan Koneksi & DNS */}
+            <div className="pt-4 border-t border-slate-800">
+              <h4 className="text-xs font-bold text-amber-400 mb-2 flex items-center gap-1.5">
+                <span>💡</span>
+                <span>Panduan Koneksi RouterOS</span>
+              </h4>
+              <ul className="text-xs text-slate-300 space-y-1.5 list-disc list-inside bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+                <li><strong>IP Fleksibel:</strong> Masukkan IP apa pun yang dipakai router MikroTik Anda.</li>
+                <li><strong>Aktifkan API:</strong> Di Winbox, pastikan menu <em>IP &rarr; Services &rarr; api (8728)</em> berstatus aktif (hijau).</li>
+                <li><strong>User Winbox:</strong> Buat user khusus (misal <em>admin</em> grup <em>full</em>) di <em>System &rarr; Users</em>.</li>
+              </ul>
+            </div>
+
+            <div className="pt-4 border-t border-slate-800">
+              <h4 className="text-xs font-bold text-cyan-400 mb-1">
+                🌐 Domain Lokal <code className="text-white">guardhub.com</code>
+              </h4>
+              <p className="text-[11px] text-slate-400 mb-2.5">
+                Daftarkan DNS static di MikroTik agar semua HP &amp; laptop di WiFi cukup mengetik <strong className="text-white">http://guardhub.com:8080</strong>.
+              </p>
+              <button
+                type="button"
+                onClick={setupDomainOnMikrotik}
+                disabled={loading || !testResult?.connected}
+                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 disabled:opacity-50 text-white font-bold py-2 px-3 rounded-xl text-xs transition shadow-lg shadow-cyan-600/20 flex items-center justify-center gap-1.5"
+              >
+                <span>🚀</span>
+                <span>Pasang DNS guardhub.com ke MikroTik</span>
+              </button>
             </div>
           </div>
         </div>
