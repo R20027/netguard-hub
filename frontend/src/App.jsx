@@ -21,7 +21,9 @@ import {
   TrendingUp,
   UserCheck,
   Eye,
-  Type
+  Type,
+  Sun,
+  Moon
 } from 'lucide-react';
 import Tickets from './Tickets';
 import NocMap from './NocMap';
@@ -57,6 +59,26 @@ function App() {
   const [isLargeText, setIsLargeText] = useState(() => {
     return localStorage.getItem('guardhub_large_text') === 'true';
   });
+
+  // Minimalist Theme Engine (Light & Dark Mode)
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('guardhub_theme') || 'dark';
+  });
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('guardhub_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    showToast(nextTheme === 'dark' ? 'Tampilan beralih ke Mode Gelap' : 'Tampilan beralih ke Mode Terang', 'info');
+  };
 
   const { showToast, confirmModal } = useToast();
 
@@ -414,8 +436,28 @@ function App() {
             </div>
           </div>
 
-          {/* Quick Controls: Large Text Toggle (Mode Ramah Mata) & Logout */}
+          {/* Quick Controls: Theme Switcher, Large Text Toggle & Logout */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* Minimalist Switch Light / Dark Mode */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition text-xs border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200"
+              title={theme === 'dark' ? 'Ubah ke Tampilan Terang (Light Mode)' : 'Ubah ke Tampilan Gelap (Dark Mode)'}
+            >
+              {theme === 'dark' ? (
+                <>
+                  <Sun className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden sm:inline">Terang</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-3.5 h-3.5 text-slate-600" />
+                  <span className="hidden sm:inline">Gelap</span>
+                </>
+              )}
+            </button>
+
             {/* Tombol Aksesibilitas Umur & Lapangan: Ramah Mata */}
             <button
               type="button"

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API, isGitHubPages } from './api';
-import { Shield, ShieldAlert, AlertCircle, Eye, EyeOff, Lock, User, ArrowRight, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Shield, ShieldAlert, AlertCircle, Eye, EyeOff, Lock, User, ArrowRight, Loader2, Sparkles, CheckCircle2, Sun, Moon } from 'lucide-react';
 
 export default function Login({ onLoginSuccess }) {
   const [username, setUsername] = useState('admin');
@@ -10,6 +10,22 @@ export default function Login({ onLoginSuccess }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [lockoutSeconds, setLockoutSeconds] = useState(0);
+
+  // Theme state for login screen
+  const [theme, setTheme] = useState(() => localStorage.getItem('guardhub_theme') || 'dark');
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('guardhub_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   // Countdown timer saat sistem terkunci karena salah 3x
   useEffect(() => {
@@ -111,21 +127,46 @@ export default function Login({ onLoginSuccess }) {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 selection:bg-cyan-500 selection:text-black">
-      {/* Background Subtle Gradient */}
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(14,165,233,0.15),rgba(255,255,255,0))] pointer-events-none"></div>
-
-      <div className="w-full max-w-sm sm:max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl relative z-10 space-y-6">
-        {/* Header Logo */}
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 mx-auto rounded-xl bg-slate-800/80 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-lg shadow-cyan-950/50">
-            <Shield className="w-6 h-6 text-cyan-400" />
+      <div className="w-full max-w-sm sm:max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl relative z-10 space-y-6">
+        {/* Top Header Controls: Theme Switcher */}
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center text-cyan-500">
+              <Shield className="w-5 h-5 text-cyan-500" />
+            </div>
+            <div>
+              <h1 className="text-base font-black tracking-tight text-white flex items-center gap-1">
+                <span>NetGuard</span>
+                <span className="text-cyan-500">Hub</span>
+              </h1>
+            </div>
           </div>
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center justify-center gap-1">
-            <span>NetGuard</span>
-            <span className="text-cyan-400">Hub</span>
-          </h1>
-          <p className="text-slate-400 text-xs font-mono">
-            ROUTEROS NOC &amp; ROLE-BASED ACCESS
+
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="p-2 rounded-xl border border-slate-700/80 bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition text-xs flex items-center gap-1.5"
+            title={theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'}
+          >
+            {theme === 'dark' ? (
+              <>
+                <Sun className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-[11px] font-semibold">Terang</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-3.5 h-3.5 text-slate-600" />
+                <span className="text-[11px] font-semibold">Gelap</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Subtitle */}
+        <div className="text-left space-y-1 border-b border-slate-800 pb-3">
+          <h2 className="text-lg font-bold text-white tracking-tight">Masuk ke Sistem</h2>
+          <p className="text-slate-400 text-xs">
+            Portal manajemen MikroTik RouterOS &amp; kontrol peran (RBAC).
           </p>
         </div>
 
@@ -136,7 +177,7 @@ export default function Login({ onLoginSuccess }) {
               Nama Pengguna (Username)
             </label>
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                 <User className="w-4 h-4" />
               </span>
               <input
@@ -147,7 +188,7 @@ export default function Login({ onLoginSuccess }) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="admin / noc / teknisi / bendahara"
-                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl pl-9 pr-3.5 py-2.5 text-sm text-white placeholder-slate-600 outline-none transition disabled:opacity-50 font-mono"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl pl-9 pr-3.5 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition disabled:opacity-50 font-mono"
               />
             </div>
           </div>
@@ -157,7 +198,7 @@ export default function Login({ onLoginSuccess }) {
               Kata Sandi (Password)
             </label>
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                 <Lock className="w-4 h-4" />
               </span>
               <input
@@ -168,12 +209,12 @@ export default function Login({ onLoginSuccess }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Masukkan kata sandi akun"
-                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl pl-9 pr-10 py-2.5 text-sm text-white placeholder-slate-600 outline-none transition disabled:opacity-50 font-mono"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl pl-9 pr-10 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition disabled:opacity-50 font-mono"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 transition"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200 transition"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -214,10 +255,10 @@ export default function Login({ onLoginSuccess }) {
           <button
             type="submit"
             disabled={lockoutSeconds > 0 || loading}
-            className={`w-full py-3 rounded-xl font-bold text-sm tracking-wide text-white transition flex items-center justify-center gap-2 ${
+            className={`w-full py-2.5 rounded-xl font-bold text-sm tracking-wide text-white transition flex items-center justify-center gap-2 ${
               lockoutSeconds > 0
                 ? 'bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed'
-                : 'bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 shadow-md shadow-cyan-950/50'
+                : 'bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 shadow-sm'
             }`}
           >
             {loading ? (
@@ -236,56 +277,53 @@ export default function Login({ onLoginSuccess }) {
           </button>
         </form>
 
-        {/* Petunjuk Cepat 4 Role (Sangat Ramah Pengguna & Lapangan) */}
-        <div className="border-t border-slate-800/80 pt-4 space-y-2">
+        {/* Petunjuk Cepat 4 Role (Minimalist & Ergonomis) */}
+        <div className="border-t border-slate-800 pt-3.5 space-y-2">
           <div className="flex items-center justify-between text-slate-400 text-[11px]">
-            <span className="font-semibold flex items-center gap-1 text-slate-300">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              Pilih Role Pengguna (Akses Cepat):
-            </span>
+            <span className="font-medium text-slate-400">Pilih Akun Cepat (Demo):</span>
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-[11px]">
             <button
               type="button"
               onClick={() => selectRoleShortcut('admin', 'rois_admin')}
-              className="p-2 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-rose-900/40 text-left transition"
+              className="p-2 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 text-left transition"
             >
               <div className="font-bold text-rose-400">Admin</div>
-              <div className="text-[10px] text-slate-400">Semua menu &amp; router</div>
+              <div className="text-[10px] text-slate-400">Semua menu</div>
             </button>
 
             <button
               type="button"
               onClick={() => selectRoleShortcut('noc', 'noc_admin')}
-              className="p-2 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-cyan-900/40 text-left transition"
+              className="p-2 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 text-left transition"
             >
               <div className="font-bold text-cyan-400">NOC</div>
-              <div className="text-[10px] text-slate-400">Read-Only Monitoring</div>
+              <div className="text-[10px] text-slate-400">Read-Only Monitor</div>
             </button>
 
             <button
               type="button"
               onClick={() => selectRoleShortcut('teknisi', 'teknisi_admin')}
-              className="p-2 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-emerald-900/40 text-left transition"
+              className="p-2 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 text-left transition"
             >
               <div className="font-bold text-emerald-400">Teknisi</div>
-              <div className="text-[10px] text-slate-400">Mapping, PSB &amp; Tiket</div>
+              <div className="text-[10px] text-slate-400">Mapping &amp; PSB</div>
             </button>
 
             <button
               type="button"
               onClick={() => selectRoleShortcut('bendahara', 'bendahara_admin')}
-              className="p-2 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-amber-900/40 text-left transition"
+              className="p-2 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 text-left transition"
             >
               <div className="font-bold text-amber-400">Bendahara</div>
-              <div className="text-[10px] text-slate-400">Keuangan, Tagihan, PPN</div>
+              <div className="text-[10px] text-slate-400">Keuangan &amp; PPN</div>
             </button>
           </div>
         </div>
       </div>
 
-      <footer className="mt-6 text-[11px] text-slate-500 font-mono text-center">
+      <footer className="mt-5 text-[11px] text-slate-500 font-mono text-center">
         NetGuard Hub &bull; Protected by WAF Shield &bull; Port 8080
       </footer>
     </div>
