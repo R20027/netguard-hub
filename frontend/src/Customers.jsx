@@ -2,8 +2,29 @@ import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import {
+  Users,
+  UserPlus,
+  RefreshCw,
+  MapPin,
+  Lock,
+  Unlock,
+  Zap,
+  Trash2,
+  Edit3,
+  Search,
+  Phone,
+  ShieldCheck,
+  Wifi,
+  X,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowUpDown,
+  Globe
+} from 'lucide-react';
 import { API } from './api';
 import HelpTip from './HelpTip';
+import { useToast } from './NotificationContext';
 
 function MiniMapPicker({ lat, lng, nocCenter, onPick }) {
   const containerRef = useRef(null);
@@ -78,6 +99,8 @@ export default function Customers({ onSwitchTab }) {
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'online' | 'offline' | 'isolated'
+
+  const { showToast, confirmModal } = useToast();
 
   const defaultDueDate = () => new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
 
@@ -162,7 +185,7 @@ export default function Customers({ onSwitchTab }) {
 
   const useMyGPS = () => {
     if (!navigator.geolocation) {
-      alert('Browser tidak mendukung GPS.');
+      showToast('Browser perangkat tidak mendukung fitur Geolocation GPS.', 'warning');
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -172,9 +195,10 @@ export default function Customers({ onSwitchTab }) {
           lat: pos.coords.latitude.toFixed(6),
           lng: pos.coords.longitude.toFixed(6),
         }));
+        showToast('Titik koordinat berhasil diperoleh dari GPS.', 'success');
       },
       (err) => {
-        alert(`GPS tidak dapat diakses (${err.message}). Silakan aktifkan opsi "Pilih Titik di Peta" di bawah lalu klik langsung rumah pelanggan!`);
+        showToast(`GPS tidak dapat diakses (${err.message}). Buka pemilih peta untuk menentukan lokasi rumah.`, 'warning');
         setShowMapPicker(true);
       },
       { enableHighAccuracy: true, timeout: 8000 }
@@ -194,70 +218,102 @@ export default function Customers({ onSwitchTab }) {
         const res = await axios.patch(`${API}/customers/${editingId}`, payload);
         setShowModal(false);
         load();
-        alert(`✅ ${res.data.message}`);
+        showToast(res.data.message || 'Data pelanggan berhasil diperbarui.', 'success');
       } else {
         const res = await axios.post(`${API}/customers`, payload);
         setShowModal(false);
         setForm(emptyForm());
         load();
-        alert(`${res.data.mikrotik_synced ? '✅' : '⚠️'} ${res.data.message}`);
+        showToast(res.data.message || 'Pelanggan berhasil ditambahkan & disinkronkan ke MikroTik.', 'success');
       }
     } catch (err) {
-      alert('Gagal: ' + (err.response?.data?.error || err.message));
+      showToast(err.response?.data?.error || err.message, 'error', 'Gagal Menyimpan Pelanggan');
     }
   };
 
   const deleteCustomer = async (id, name) => {
-    if (!confirm(`⚠️ Hapus ${name}? Secret PPPoE di MikroTik dan data tagihan juga akan dihapus.`)) return;
+    const confirmed = await confirmModal({
+      title: 'Hapus Pelanggan & Secret Router',
+      message: `Hapus pelanggan ${name}? Akun PPPoE di MikroTik dan seluruh riwayat tagihan akan dihapus permanen.`,
+      confirmText: 'Hapus Permanen',
+      cancelText: 'Batal',
+      isDestructive: true,
+    });
+    if (!confirmed) return;
+
     try {
       await axios.delete(`${API}/customers/${id}`);
-      alert(`Pelanggan ${name} berhasil dihapus dari database & MikroTik!`);
+      showToast(`Pelanggan ${name} berhasil dihapus dari database & MikroTik.`, 'info');
       load();
     } catch (err) {
-      alert('Gagal: ' + (err.response?.data?.error || err.message));
+      showToast(err.response?.data?.error || err.message, 'error', 'Gagal Menghapus');
     }
   };
 
   const isolate = async (id, name) => {
-    if (!confirm(`Isolir ${name}?\nAkun PPPoE di MikroTik akan di-disable, sesi aktif langsung diputus, dan IP dimasukkan ke address-list ISOLIR.`)) return;
+    const confirmed = await confirmModal({
+      title: 'Konfirmasi Isolir Pelanggan',
+      message: `Isolir pelanggan ${name}?\nAkun PPPoE di MikroTik akan dinonaktifkan, sesi online diputus, dan IP dimasukkan ke address-list ISOLIR.`,
+      confirmText: 'Isolir Sekarang',
+      cancelText: 'Batal',
+      isDestructive: true,
+    });
+    if (!confirmed) return;
+
     try {
       const res = await axios.post(`${API}/customers/${id}/isolate`);
-      alert(`🔒 ${res.data.message}`);
+      showToast(res.data.message, 'warning', 'Pelanggan Terisolir');
       load();
     } catch (err) {
-      alert('Gagal: ' + (err.response?.data?.error || err.message));
+      showToast(err.response?.data?.error || err.message, 'error', 'Gagal Mengisolir');
     }
   };
 
   const restore = async (id, name) => {
-    if (!confirm(`Buka isolir ${name}?\nAkun PPPoE di MikroTik diaktifkan kembali dan IP dilepas dari isolir firewall.`)) return;
+    const confirmed = await confirmModal({
+      title: 'Buka Isolir Pelanggan',
+      message: `Buka isolir pelanggan ${name}?\nAkun PPPoE di MikroTik akan diaktifkan kembali dan IP dilepas dari isolir firewall.`,
+      confirmText: 'Buka Isolir',
+      cancelText: 'Batal',
+      isDestructive: false,
+    });
+    if (!confirmed) return;
+
     try {
       const res = await axios.post(`${API}/customers/${id}/restore`);
-      alert(`🔓 ${res.data.message}`);
+      showToast(res.data.message, 'success', 'Isolir Dibuka');
       load();
     } catch (err) {
-      alert('Gagal: ' + (err.response?.data?.error || err.message));
+      showToast(err.response?.data?.error || err.message, 'error', 'Gagal Membuka Isolir');
     }
   };
 
   const kickSession = async (id, user) => {
-    if (!confirm(`Putuskan paksa (kick) sesi aktif PPPoE ${user} di MikroTik?`)) return;
+    const confirmed = await confirmModal({
+      title: 'Putuskan Sesi Koneksi (Kick)',
+      message: `Putuskan paksa sesi aktif PPPoE ${user} di MikroTik? Pelanggan akan otomatis melakukan rekoneksi ulang.`,
+      confirmText: 'Putuskan Sesi',
+      cancelText: 'Batal',
+      isDestructive: true,
+    });
+    if (!confirmed) return;
+
     try {
       const res = await axios.post(`${API}/customers/${id}/kick`);
-      alert(`⚡ ${res.data.message}`);
+      showToast(res.data.message, 'info', 'Sesi Diputus');
       load();
     } catch (err) {
-      alert('Info: ' + (err.response?.data?.error || err.message));
+      showToast(err.response?.data?.error || err.message, 'error');
     }
   };
 
   const syncSecret = async (id) => {
     try {
       const res = await axios.post(`${API}/customers/${id}/sync-mikrotik`);
-      alert(`📡 ${res.data.message}`);
+      showToast(res.data.message, 'success', 'Sinkronisasi Router');
       load();
     } catch (err) {
-      alert('Gagal sync: ' + (err.response?.data?.error || err.message));
+      showToast(err.response?.data?.error || err.message, 'error', 'Gagal Sync');
     }
   };
 
@@ -265,16 +321,20 @@ export default function Customers({ onSwitchTab }) {
     try {
       const r = await axios.post(`${API}/customers/${id}/pppoe-login`);
       const d = r.data;
-      alert(
-        `✅ ${name}\n${d.message}\n\n` +
-        `• Status Database: ${d.db_status}\n` +
-        `• RouterOS Online: ${d.mikrotik_online ? 'Ya' : 'Tidak'}\n` +
-        `• Secret di MikroTik: ${d.secret_exists ? 'Ada' : 'Belum ada'}\n` +
-        `• Sesi Aktif Sekarang: ${d.is_online ? `ONLINE (${d.active_ip})` : 'Offline'}`
+      showToast(
+        `${name}: ${d.message}\n` +
+        `• Status DB: ${d.db_status} | RouterOS: ${d.mikrotik_online ? 'Online' : 'Offline'}\n` +
+        `• Secret: ${d.secret_exists ? 'Ada' : 'Belum'} | Sesi: ${d.is_online ? `ONLINE (${d.active_ip})` : 'Offline'}`,
+        'success',
+        'PPPoE Audit Lulus'
       );
     } catch (err) {
       const d = err.response?.data || {};
-      alert(`❌ ${name}\nPPPoE DITOLAK!\n\nAlasan: ${d.reason || 'Akun terisolir'}\nAction: ${d.action || 'Firewall BLOCK'}`);
+      showToast(
+        `${name}: PPPoE DITOLAK\nAlasan: ${d.reason || 'Akun terisolir'}\nAksi: ${d.action || 'Firewall BLOCK'}`,
+        'error',
+        'Autentikasi PPPoE Ditolak'
+      );
     }
   };
 

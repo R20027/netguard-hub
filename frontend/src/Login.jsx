@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API, isGitHubPages } from './api';
+import { Shield, ShieldAlert, AlertCircle, Eye, EyeOff, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
 
 export default function Login({ onLoginSuccess }) {
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [lockoutSeconds, setLockoutSeconds] = useState(0);
@@ -53,7 +55,7 @@ export default function Login({ onLoginSuccess }) {
       if (err.response?.status === 429 || data?.locked) {
         const waitSec = data?.retry_after || 60;
         setLockoutSeconds(waitSec);
-        setErrorMsg(data?.error || `Salah password 3 kali! Sistem terkunci selama ${waitSec} detik.`);
+        setErrorMsg(data?.error || `Percobaan login gagal berulang. Akses ditangguhkan selama ${waitSec} detik demi keamanan.`);
         return;
       }
 
@@ -69,7 +71,7 @@ export default function Login({ onLoginSuccess }) {
         return;
       }
 
-      setErrorMsg(data?.error || 'Username atau password salah.');
+      setErrorMsg(data?.error || 'Kombinasi pengguna dan kata sandi tidak valid.');
     } finally {
       setLoading(false);
     }
@@ -77,79 +79,102 @@ export default function Login({ onLoginSuccess }) {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 selection:bg-cyan-500 selection:text-black">
-      {/* Background Glow */}
-      <div className="absolute w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl -top-20 -left-20 pointer-events-none"></div>
-      <div className="absolute w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -bottom-20 -right-20 pointer-events-none"></div>
+      {/* Background Subtle Gradient */}
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(14,165,233,0.15),rgba(255,255,255,0))] pointer-events-none"></div>
 
-      <div className="w-full max-w-md bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative z-10 space-y-6">
+      <div className="w-full max-w-sm sm:max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl relative z-10 space-y-6">
         {/* Header Logo */}
         <div className="text-center space-y-2">
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-3xl shadow-lg shadow-cyan-500/25 border border-cyan-400/30">
-            🛡️
+          <div className="w-12 h-12 mx-auto rounded-xl bg-slate-800/80 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-lg shadow-cyan-950/50">
+            <Shield className="w-6 h-6 text-cyan-400" />
           </div>
-          <h1 className="text-2xl font-black tracking-tight text-white flex items-center justify-center gap-1.5 pt-1">
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center justify-center gap-1">
             <span>NetGuard</span>
             <span className="text-cyan-400">Hub</span>
           </h1>
-          <p className="text-slate-400 text-xs">
-            MikroTik RouterOS Automated NOC &amp; ISP Billing
+          <p className="text-slate-400 text-xs font-mono">
+            ROUTEROS NOC &amp; SUBSCRIBER MANAGEMENT
           </p>
         </div>
 
         {/* Form Login */}
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs font-sans">
           <div>
-            <label className="block text-slate-300 font-semibold mb-1.5">
-              Username Admin
+            <label className="block text-slate-300 font-semibold mb-1.5 text-xs">
+              Akun Administrator
             </label>
-            <input
-              required
-              type="text"
-              autoComplete="username"
-              disabled={lockoutSeconds > 0 || loading}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="admin"
-              className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-xl px-3.5 py-3 text-sm text-white placeholder-slate-600 outline-none transition disabled:opacity-50"
-            />
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                <User className="w-4 h-4" />
+              </span>
+              <input
+                required
+                type="text"
+                autoComplete="username"
+                disabled={lockoutSeconds > 0 || loading}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="admin"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl pl-9 pr-3.5 py-2.5 text-sm text-white placeholder-slate-600 outline-none transition disabled:opacity-50"
+              />
+            </div>
           </div>
 
           <div>
-            <label className="block text-slate-300 font-semibold mb-1.5">
-              Password
+            <label className="block text-slate-300 font-semibold mb-1.5 text-xs">
+              Kata Sandi
             </label>
-            <input
-              required
-              type="password"
-              autoComplete="current-password"
-              disabled={lockoutSeconds > 0 || loading}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Masukkan password admin"
-              className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-xl px-3.5 py-3 text-sm text-white placeholder-slate-600 outline-none transition disabled:opacity-50"
-            />
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                <Lock className="w-4 h-4" />
+              </span>
+              <input
+                required
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                disabled={lockoutSeconds > 0 || loading}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Masukkan kata sandi admin"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl pl-9 pr-10 py-2.5 text-sm text-white placeholder-slate-600 outline-none transition disabled:opacity-50"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 transition"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           {/* Pesan Kesalahan / Warning */}
           {errorMsg && (
             <div
-              className={`p-3 rounded-xl border text-xs leading-relaxed ${
+              className={`p-3 rounded-xl border text-xs leading-relaxed flex items-start gap-2.5 ${
                 lockoutSeconds > 0
-                  ? 'bg-rose-950/80 border-rose-700 text-rose-200 animate-pulse'
-                  : 'bg-amber-950/80 border-amber-800 text-amber-200'
+                  ? 'bg-rose-950/70 border-rose-800 text-rose-200'
+                  : 'bg-amber-950/70 border-amber-800 text-amber-200'
               }`}
             >
-              <div className="font-bold flex items-center gap-1.5 mb-0.5">
-                <span>{lockoutSeconds > 0 ? '🔒 KEAMANAN ANTI-BOT AKTIF' : '⚠️ GAGAL MASUK'}</span>
-              </div>
-              <p>{errorMsg}</p>
-              {lockoutSeconds > 0 && (
-                <div className="mt-2 text-center py-1.5 bg-black/40 rounded-lg font-mono font-bold text-rose-300 text-sm">
-                  {lockoutSeconds > 60
-                    ? `Tunggu ${Math.floor(lockoutSeconds / 60)} menit ${lockoutSeconds % 60} detik...`
-                    : `Tunggu ${lockoutSeconds} detik...`}
-                </div>
+              {lockoutSeconds > 0 ? (
+                <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
               )}
+              <div className="flex-1">
+                <div className="font-bold text-[11px] uppercase tracking-wider mb-0.5">
+                  {lockoutSeconds > 0 ? 'Proteksi Keamanan Aktif' : 'Autentikasi Gagal'}
+                </div>
+                <p>{errorMsg}</p>
+                {lockoutSeconds > 0 && (
+                  <div className="mt-2 text-center py-1.5 bg-black/40 rounded-lg font-mono font-bold text-rose-300 text-xs">
+                    {lockoutSeconds > 60
+                      ? `Jeda keamanan: ${Math.floor(lockoutSeconds / 60)} menit ${lockoutSeconds % 60} detik`
+                      : `Jeda keamanan: ${lockoutSeconds} detik`}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -157,30 +182,31 @@ export default function Login({ onLoginSuccess }) {
           <button
             type="submit"
             disabled={lockoutSeconds > 0 || loading}
-            className={`w-full py-3.5 rounded-xl font-bold text-sm tracking-wide text-white transition-all shadow-lg ${
+            className={`w-full py-2.5 rounded-xl font-semibold text-xs tracking-wide text-white transition flex items-center justify-center gap-2 ${
               lockoutSeconds > 0
                 ? 'bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed'
-                : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 shadow-cyan-600/25 active:scale-[0.98]'
+                : 'bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 shadow-md shadow-cyan-950/50'
             }`}
           >
             {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                <span>Memverifikasi...</span>
-              </span>
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                <span>Memverifikasi Sesi...</span>
+              </>
             ) : lockoutSeconds > 0 ? (
-              lockoutSeconds > 60
-                ? `Terkunci (${Math.floor(lockoutSeconds / 60)}m ${lockoutSeconds % 60}s)`
-                : `Terkunci (${lockoutSeconds}s)`
+              <span>Sistem Ditangguhkan</span>
             ) : (
-              'Masuk ke GuardHub'
+              <>
+                <span>Masuk Sistem</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
             )}
           </button>
         </form>
       </div>
 
-      <footer className="mt-6 text-xs text-slate-600 text-center">
-        NetGuard Hub &bull; Keamanan Server &bull; Port 8080
+      <footer className="mt-6 text-[11px] text-slate-500 font-mono text-center">
+        NetGuard Hub &bull; Protected by WAF Shield &bull; Port 8080
       </footer>
     </div>
   );

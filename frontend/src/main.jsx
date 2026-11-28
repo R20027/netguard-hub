@@ -1,7 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
-import './index.css'  // <--- INI WAJIB ADA
+import './index.css'
+import { NotificationProvider } from './NotificationContext.jsx'
 
 // Anti-Clickjacking Framebuster: Mencegah web di-iframe oleh malware/hacker
 if (typeof window !== 'undefined' && window.top !== window.self) {
@@ -14,6 +15,8 @@ if (typeof window !== 'undefined' && window.top !== window.self) {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <NotificationProvider>
+      <App />
+    </NotificationProvider>
   </React.StrictMode>,
 )

@@ -1,7 +1,31 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import {
+  Radio,
+  Terminal,
+  ShieldCheck,
+  Download,
+  Upload,
+  Globe,
+  KeyRound,
+  UserPlus,
+  Users,
+  Trash2,
+  Power,
+  Zap,
+  RefreshCw,
+  Server,
+  AlertTriangle,
+  CheckCircle2,
+  X,
+  Search,
+  Activity,
+  Cpu,
+  Network
+} from 'lucide-react';
 import { API } from './api';
 import HelpTip from './HelpTip';
+import { useToast } from './NotificationContext';
 
 export default function Mikrotik({ onConnectedChange }) {
   const [subTab, setSubTab] = useState('secrets'); // 'secrets' | 'active' | 'interfaces' | 'terminal' | 'config'
@@ -25,6 +49,8 @@ export default function Mikrotik({ onConnectedChange }) {
   const [detectedGateway, setDetectedGateway] = useState(null);
   const [detectingGw, setDetectingGw] = useState(false);
   const [backupLoading, setBackupLoading] = useState(false);
+
+  const { showToast, confirmModal } = useToast();
 
   const detectRouterGateway = async () => {
     setDetectingGw(true);
@@ -54,16 +80,24 @@ export default function Mikrotik({ onConnectedChange }) {
   const handleImportBackup = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!confirm(`Pulihkan seluruh database dari file cadangan "${file.name}"? Data lama akan disinkronkan.`)) return;
+    const confirmed = await confirmModal({
+      title: 'Pulihkan Cadangan Database',
+      message: `Pulihkan seluruh database dari file cadangan "${file.name}"? Data yang ada akan diselaraskan.`,
+      confirmText: 'Pulihkan Data',
+      cancelText: 'Batal',
+      isDestructive: false,
+    });
+    if (!confirmed) return;
+
     setBackupLoading(true);
     try {
       const text = await file.text();
       const json = JSON.parse(text);
       const res = await axios.post(`${API}/backup/import`, json);
-      alert(res.data?.message || 'Data berhasil dipulihkan!');
+      showToast(res.data?.message || 'Data berhasil dipulihkan dari cadangan.', 'success');
       loadConfig();
     } catch (err) {
-      alert('Gagal memulihkan cadangan: ' + (err.response?.data?.error || err.message));
+      showToast(err.response?.data?.error || err.message, 'error', 'Gagal Memulihkan Cadangan');
     } finally {
       setBackupLoading(false);
     }
@@ -101,13 +135,13 @@ export default function Mikrotik({ onConnectedChange }) {
     setLoading(true);
     try {
       await axios.post(`${API}/mikrotik/config`, config);
-      alert('✅ Konfigurasi MikroTik berhasil disimpan!');
+      showToast('Konfigurasi koneksi MikroTik berhasil disimpan.', 'success');
       testConnection(config);
       if (onConnectedChange) {
         onConnectedChange();
       }
     } catch (err) {
-      alert('Gagal menyimpan: ' + err.message);
+      showToast(err.message, 'error', 'Gagal Menyimpan Konfigurasi');
     } finally {
       setLoading(false);
     }
@@ -166,91 +200,139 @@ export default function Mikrotik({ onConnectedChange }) {
     setLoading(true);
     try {
       await axios.post(`${API}/mikrotik/secrets`, newSecret);
-      alert(`✅ Akun PPPoE ${newSecret.name} berhasil dibuat di MikroTik!`);
+      showToast(`Akun PPPoE ${newSecret.name} berhasil dibuat di MikroTik.`, 'success');
       setShowAddSecret(false);
       setNewSecret({ name: '', password: '', profile: 'default', remote_address: '', comment: '' });
       loadSecrets();
     } catch (err) {
-      alert('Gagal buat secret: ' + (err.response?.data?.error || err.message));
+      showToast(err.response?.data?.error || err.message, 'error', 'Gagal Membuat Secret');
     } finally {
       setLoading(false);
     }
   };
 
   const deleteSecret = async (name) => {
-    if (!confirm(`⚠️ HAPUS PERMANEN akun ${name} dari router MikroTik?`)) return;
+    const confirmed = await confirmModal({
+      title: 'Hapus Secret RouterOS',
+      message: `Hapus permanen akun PPPoE ${name} dari router MikroTik? Pelanggan tidak akan dapat terhubung lagi.`,
+      confirmText: 'Hapus Secret',
+      cancelText: 'Batal',
+      isDestructive: true,
+    });
+    if (!confirmed) return;
+
     try {
       await axios.delete(`${API}/mikrotik/secrets/${encodeURIComponent(name)}`);
-      alert(`Akun ${name} telah dihapus dari MikroTik.`);
+      showToast(`Akun ${name} telah dihapus dari router MikroTik.`, 'info');
       loadSecrets();
     } catch (err) {
-      alert('Gagal hapus: ' + (err.response?.data?.error || err.message));
+      showToast(err.response?.data?.error || err.message, 'error', 'Gagal Menghapus');
     }
   };
 
   const toggleSecret = async (name, currentDisabled) => {
     const actionText = currentDisabled ? 'Buka isolir' : 'Isolir';
-    if (!confirm(`${actionText} akun ${name} di MikroTik?`)) return;
+    const confirmed = await confirmModal({
+      title: `${actionText} Akun PPPoE`,
+      message: `${actionText} akun ${name} di MikroTik?`,
+      confirmText: actionText,
+      cancelText: 'Batal',
+      isDestructive: !currentDisabled,
+    });
+    if (!confirmed) return;
+
     try {
       await axios.post(`${API}/mikrotik/toggle-secret`, { name, disabled: !currentDisabled });
-      alert(`Akun ${name} berhasil di-${actionText}!`);
+      showToast(`Akun ${name} berhasil di-${actionText}.`, 'success');
       loadSecrets();
       if (!currentDisabled) loadActiveUsers();
     } catch (err) {
-      alert('Gagal update: ' + (err.response?.data?.error || err.message));
+      showToast(err.response?.data?.error || err.message, 'error', 'Gagal Memperbarui Secret');
     }
   };
 
   const kickUser = async (name) => {
-    if (!confirm(`Putus paksa (kick) sesi koneksi ${name}? Pelanggan akan otomatis reconnect.`)) return;
+    const confirmed = await confirmModal({
+      title: 'Putus Sesi Online (Kick)',
+      message: `Putuskan paksa sesi koneksi ${name}? Pelanggan akan otomatis melakukan rekoneksi ulang.`,
+      confirmText: 'Putuskan Sesi',
+      cancelText: 'Batal',
+      isDestructive: true,
+    });
+    if (!confirmed) return;
+
     try {
       await axios.post(`${API}/mikrotik/kick`, { name });
-      alert(`Sesi ${name} berhasil diputus!`);
+      showToast(`Sesi aktif ${name} berhasil diputus.`, 'info');
       loadActiveUsers();
     } catch (err) {
-      alert('Gagal disconnect: ' + (err.response?.data?.error || err.message));
+      showToast(err.response?.data?.error || err.message, 'error');
     }
   };
 
   const importCustomers = async () => {
-    if (!confirm('Impor semua akun PPPoE dari MikroTik ke database Pelanggan NetGuard Hub? Akun yang sudah ada otomatis dilewati.')) return;
+    const confirmed = await confirmModal({
+      title: 'Impor Akun PPPoE dari Router',
+      message: 'Impor semua akun PPPoE dari MikroTik ke database Pelanggan NetGuard Hub? Akun yang sudah ada akan otomatis dilewati.',
+      confirmText: 'Impor Sekarang',
+      cancelText: 'Batal',
+      isDestructive: false,
+    });
+    if (!confirmed) return;
+
     setLoading(true);
     try {
       const res = await axios.post(`${API}/mikrotik/import-customers`);
-      alert(res.data.message);
+      showToast(res.data.message, 'success', 'Impor Selesai');
     } catch (err) {
-      alert('Gagal mengimpor: ' + (err.response?.data?.error || err.message));
+      showToast(err.response?.data?.error || err.message, 'error', 'Gagal Mengimpor');
     } finally {
       setLoading(false);
     }
   };
 
   const exportCustomers = async () => {
-    if (!confirm('Sinkronkan seluruh data pelanggan di NetGuard Hub ke MikroTik sekarang?')) return;
+    const confirmed = await confirmModal({
+      title: 'Sinkronisasi ke MikroTik',
+      message: 'Sinkronkan seluruh data pelanggan di database NetGuard Hub ke router MikroTik sekarang?',
+      confirmText: 'Sinkronkan',
+      cancelText: 'Batal',
+      isDestructive: false,
+    });
+    if (!confirmed) return;
+
     setLoading(true);
     try {
       const res = await axios.post(`${API}/mikrotik/export-customers`);
-      alert(res.data.message);
+      showToast(res.data.message, 'success', 'Ekspor Selesai');
       loadSecrets();
     } catch (err) {
-      alert('Gagal ekspor: ' + (err.response?.data?.error || err.message));
+      showToast(err.response?.data?.error || err.message, 'error', 'Gagal Ekspor');
     } finally {
       setLoading(false);
     }
   };
 
   const setupDomainOnMikrotik = async () => {
-    if (!confirm('Daftarkan domain guardhub.com ke MikroTik DNS RouterOS?\nSemua HP & laptop di jaringan WiFi/LAN router otomatis bisa mengakses http://guardhub.com:8080 tanpa setting hosts manual.')) return;
+    const confirmed = await confirmModal({
+      title: 'Daftarkan Domain DNS Lokal',
+      message: 'Daftarkan domain guardhub.com ke MikroTik DNS RouterOS?\nSeluruh perangkat di jaringan Wi-Fi/LAN router otomatis dapat mengakses http://guardhub.com:8080 tanpa setting manual.',
+      confirmText: 'Daftarkan Domain',
+      cancelText: 'Batal',
+      isDestructive: false,
+    });
+    if (!confirmed) return;
+
     setLoading(true);
     try {
       const res = await axios.post(`${API}/mikrotik/setup-domain`);
       if (res.data.success === false) {
-        alert('Gagal: ' + res.data.error);
+        showToast(res.data.error, 'error', 'Gagal Mendaftarkan Domain');
       } else {
-        alert(`✅ ${res.data.message}\nDomain: ${res.data.domain} -> IP: ${res.data.ip}`);
+        showToast(`${res.data.message}\nDomain: ${res.data.domain} -> IP: ${res.data.ip}`, 'success', 'DNS Router Siap');
       }
     } catch (err) {
-      alert('Gagal setup domain di MikroTik: ' + (err.response?.data?.error || err.message));
+      showToast(err.response?.data?.error || err.message, 'error', 'Gagal Setup Domain');
     } finally {
       setLoading(false);
     }

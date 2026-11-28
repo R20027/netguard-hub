@@ -1,14 +1,31 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import {
+  Receipt,
+  CreditCard,
+  Banknote,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  RefreshCw,
+  Zap,
+  Plus,
+  Search,
+  X,
+  Lock,
+  Unlock,
+  Check
+} from 'lucide-react';
 import { API } from './api';
 import HelpTip from './HelpTip';
+import { useToast } from './NotificationContext';
 
 export default function Invoices() {
   const [invoices, setInvoices] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'unpaid' | 'overdue' | 'paid'
+  const [statusFilter, setStatusFilter] = useState('all');
   const [search, setSearch] = useState('');
 
   const [form, setForm] = useState({
@@ -17,6 +34,8 @@ export default function Invoices() {
     amount: '150000',
     due_date: new Date().toISOString().slice(0, 10),
   });
+
+  const { showToast, confirmModal } = useToast();
 
   const load = async () => {
     setLoading(true);
@@ -54,42 +73,48 @@ export default function Invoices() {
         due_date: new Date().toISOString().slice(0, 10),
       });
       load();
-      alert('✅ Tagihan berhasil dibuat!');
+      showToast('Tagihan berhasil diterbitkan.', 'success');
     } catch (err) {
-      alert('Gagal: ' + (err.response?.data?.error || err.message));
+      showToast(err.response?.data?.error || err.message, 'error', 'Gagal Membuat Tagihan');
     }
   };
 
   const pay = async (id, custName) => {
-    if (
-      !confirm(
-        `Tandai tagihan #${id} (${custName}) LUNAS?\nJika semua tagihan pelanggan ini lunas, akun PPPoE di MikroTik otomatis di-ENABLE kembali dan IP dilepas dari isolir firewall!`
-      )
-    )
-      return;
+    const confirmed = await confirmModal({
+      title: 'Konfirmasi Pembayaran Tagihan',
+      message: `Tandai tagihan #${id} (${custName}) LUNAS?\nJika seluruh tagihan pelanggan ini lunas, akun PPPoE di MikroTik otomatis di-ENABLE dan IP dicabut dari isolir firewall.`,
+      confirmText: 'Konfirmasi Lunas',
+      cancelText: 'Batal',
+      isDestructive: false,
+    });
+    if (!confirmed) return;
+
     try {
       const r = await axios.patch(`${API}/invoices/${id}/pay`);
-      alert(r.data.message);
+      showToast(r.data.message || 'Pembayaran berhasil dikonfirmasi.', 'success');
       load();
     } catch (err) {
-      alert('Gagal bayar: ' + (err.response?.data?.error || err.message));
+      showToast(err.response?.data?.error || err.message, 'error', 'Gagal Bayar');
     }
   };
 
   const triggerAutoIsolir = async () => {
-    if (
-      !confirm(
-        'Jalankan Auto-Isolir MikroTik sekarang?\nSistem akan menonaktifkan akun PPPoE di MikroTik, memutus sesi online-nya, dan memasukkan IP-nya ke firewall address-list ISOLIR untuk semua pelanggan yang tagihannya sudah lewat jatuh tempo.'
-      )
-    )
-      return;
+    const confirmed = await confirmModal({
+      title: 'Eksekusi Auto-Isolir Scheduler',
+      message: 'Jalankan audit auto-isolir sekarang?\nSistem akan menonaktifkan akun PPPoE di MikroTik, memutus sesi aktif, dan memasukkan IP ke firewall address-list ISOLIR untuk semua pelanggan yang tagihannya melewati jatuh tempo.',
+      confirmText: 'Jalankan Isolir',
+      cancelText: 'Batal',
+      isDestructive: true,
+    });
+    if (!confirmed) return;
+
     setLoading(true);
     try {
       const r = await axios.post(`${API}/invoices/auto-isolir`);
-      alert(`⚡ ${r.data.message}`);
+      showToast(r.data.message, 'info', 'Auto-Isolir Selesai');
       load();
     } catch (err) {
-      alert('Gagal auto-isolir: ' + (err.response?.data?.error || err.message));
+      showToast(err.response?.data?.error || err.message, 'error', 'Gagal Auto-Isolir');
     } finally {
       setLoading(false);
     }
@@ -99,10 +124,10 @@ export default function Invoices() {
     setLoading(true);
     try {
       const r = await axios.post(`${API}/invoices/sync-mikrotik`);
-      alert(`🔄 ${r.data.message}`);
+      showToast(r.data.message, 'success', 'Sinkronisasi Selesai');
       load();
     } catch (err) {
-      alert('Gagal sync: ' + (err.response?.data?.error || err.message));
+      showToast(err.response?.data?.error || err.message, 'error', 'Gagal Sync');
     } finally {
       setLoading(false);
     }
@@ -146,108 +171,101 @@ export default function Invoices() {
   return (
     <div className="space-y-6">
       {/* HEADER SECTION */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold text-white tracking-tight">
-              💰 Billing, Invoices &amp; Auto-Isolir MikroTik
-            </h2>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-950 text-cyan-400 border border-cyan-800">
-              CRON ENGINE 5M
-            </span>
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-cyan-400 shrink-0">
+            <Receipt className="w-5 h-5" />
           </div>
-          <p className="text-slate-400 text-xs mt-1 max-w-2xl leading-relaxed">
-            Tagihan terintegrasi langsung dengan MikroTik: ketika pelanggan terlambat membayar (overdue), sistem otomatis mengisolir akun PPPoE dan memblokir internet. Pembayaran tagihan otomatis memulihkan internet kembali!
-          </p>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                Billing &amp; MikroTik Auto-Isolir Scheduler
+              </h2>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-cyan-950 text-cyan-300 border border-cyan-800">
+                CRON ENGINE 5M
+              </span>
+            </div>
+            <p className="text-slate-400 text-xs mt-1 max-w-2xl leading-relaxed">
+              Tagihan terintegrasi langsung dengan MikroTik: ketika pelanggan terlambat membayar (overdue), sistem otomatis mengisolir akun PPPoE dan memutus koneksi. Pembayaran tagihan otomatis memulihkan akses internet.
+            </p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2.5 w-full md:w-auto">
-          <div className="inline-flex items-center">
-            <button
-              onClick={triggerAutoIsolir}
-              disabled={loading}
-              className="w-full sm:w-auto h-10 sm:h-auto px-3.5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/25 transition flex items-center justify-center gap-1.5"
-            >
-              <span>⚡</span>
-              <span>Eksekusi Auto-Isolir</span>
-            </button>
-            <HelpTip
-              title="Eksekusi Auto-Isolir Sekarang"
-              text="Menjalankan audit isolir seketika: mematikan secret PPPoE di MikroTik, memutus koneksi online-nya, dan memasukkan IP-nya ke firewall address-list ISOLIR untuk semua pelanggan yang menunggak tagihan (overdue)."
-              impact="Pelanggan yang menunggak akan langsung terputus dari internet."
-            />
-          </div>
+        <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 w-full md:w-auto">
+          <button
+            onClick={triggerAutoIsolir}
+            disabled={loading}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-600/90 hover:bg-rose-500 text-white transition flex items-center justify-center gap-1.5 shadow-sm"
+          >
+            <Zap className="w-3.5 h-3.5" />
+            <span>Eksekusi Auto-Isolir</span>
+          </button>
 
-          <div className="inline-flex items-center">
-            <button
-              onClick={syncToMikrotik}
-              disabled={loading}
-              className="w-full sm:w-auto h-10 sm:h-auto px-3.5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center justify-center gap-1.5"
-            >
-              <span>🔄</span>
-              <span>Sync ke RouterOS</span>
-            </button>
-            <HelpTip
-              title="Sinkronisasi Tagihan ke MikroTik"
-              text="Memverifikasi status seluruh tagihan ke MikroTik. Pelanggan yang sudah lunas dibuka blokirnya, dan yang masih berhutang dipastikan terisolir."
-            />
-          </div>
+          <button
+            onClick={syncToMikrotik}
+            disabled={loading}
+            className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center justify-center gap-1.5"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span>Sync ke Router</span>
+          </button>
 
-          <div className="inline-flex items-center">
-            <button
-              onClick={() => setShowModal(true)}
-              className="w-full sm:w-auto h-10 sm:h-auto px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white shadow-lg shadow-cyan-600/25 transition flex items-center justify-center"
-            >
-              + Buat Tagihan
-            </button>
-            <HelpTip
-              title="Buat Tagihan Baru"
-              text="Menerbitkan invoice bulanan baru untuk pelanggan. Nominal dan tanggal jatuh tempo dapat ditentukan."
-            />
-          </div>
+          <button
+            onClick={() => setShowModal(true)}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition flex items-center justify-center gap-1.5 shadow-sm"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Buat Tagihan</span>
+          </button>
         </div>
       </div>
 
       {/* KPI METRICS */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
-          <span className="text-slate-400 text-xs font-medium">Total Tagihan &amp; Revenue</span>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+          <span className="text-slate-400 text-xs font-medium">Total Penerimaan (Lunas)</span>
           <div className="mt-2">
-            <span className="text-2xl font-black text-white">{formatRupiah(totalPaidRevenue)}</span>
-            <div className="text-[11px] text-slate-400 mt-0.5">
-              dari {invoices.length} tagihan ({formatRupiah(totalAmount)})
+            <span className="text-xl sm:text-2xl font-black text-white font-mono">{formatRupiah(totalPaidRevenue)}</span>
+            <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
+              dari {invoices.length} inv ({formatRupiah(totalAmount)})
             </div>
           </div>
         </div>
 
-        <div className="bg-slate-900/80 border border-emerald-900/40 rounded-2xl p-4 flex flex-col justify-between">
-          <span className="text-emerald-400 text-xs font-medium">Lunas (Paid)</span>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-3xl font-black text-emerald-400">{paidCount}</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-semibold">
-              Internet Normal
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-slate-900/80 border border-amber-900/40 rounded-2xl p-4 flex flex-col justify-between">
-          <span className="text-amber-400 text-xs font-medium">Belum Lunas (Unpaid)</span>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-3xl font-black text-amber-400">{unpaidCount}</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800 font-semibold">
-              Menunggu Bayar
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-slate-900/80 border border-rose-900/40 rounded-2xl p-4 flex flex-col justify-between">
-          <span className="text-rose-400 text-xs font-medium flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-            Lewat Jatuh Tempo (Overdue)
+        <div className="bg-slate-900 border border-emerald-900/40 rounded-xl p-4 flex flex-col justify-between">
+          <span className="text-emerald-400 text-xs font-medium flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Lunas
           </span>
           <div className="flex items-baseline justify-between mt-2">
-            <span className="text-3xl font-black text-rose-400">{overdueCount}</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800 font-semibold">
+            <span className="text-2xl sm:text-3xl font-black text-emerald-400">{paidCount}</span>
+            <span className="text-[11px] font-mono text-emerald-400/80">
+              Normal
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-slate-900 border border-amber-900/40 rounded-xl p-4 flex flex-col justify-between">
+          <span className="text-amber-400 text-xs font-medium flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5" />
+            Belum Lunas
+          </span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl sm:text-3xl font-black text-amber-400">{unpaidCount}</span>
+            <span className="text-[11px] font-mono text-amber-400/80">
+              Pending
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-slate-900 border border-rose-900/40 rounded-xl p-4 flex flex-col justify-between">
+          <span className="text-rose-400 text-xs font-medium flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            Lewat Jatuh Tempo
+          </span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl sm:text-3xl font-black text-rose-400">{overdueCount}</span>
+            <span className="text-[11px] font-mono text-rose-400/80">
               Target Isolir
             </span>
           </div>
@@ -255,14 +273,14 @@ export default function Invoices() {
       </div>
 
       {/* FILTER & SEARCH BAR */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col lg:flex-row items-center justify-between gap-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 sm:p-4 flex flex-col lg:flex-row items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-          <div className="flex flex-wrap items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold gap-1">
+          <div className="flex flex-wrap items-center bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs font-semibold gap-1">
             <button
               onClick={() => setStatusFilter('all')}
-              className={`px-3 py-1.5 rounded-lg transition ${
+              className={`px-3 py-1.5 rounded-md transition ${
                 statusFilter === 'all'
-                  ? 'bg-blue-600 text-white shadow'
+                  ? 'bg-slate-800 text-white border border-slate-700 shadow-sm'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -270,9 +288,9 @@ export default function Invoices() {
             </button>
             <button
               onClick={() => setStatusFilter('unpaid')}
-              className={`px-3 py-1.5 rounded-lg transition ${
+              className={`px-3 py-1.5 rounded-md transition ${
                 statusFilter === 'unpaid'
-                  ? 'bg-amber-600 text-white shadow'
+                  ? 'bg-slate-800 text-amber-300 border border-amber-800/60 shadow-sm'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -280,9 +298,9 @@ export default function Invoices() {
             </button>
             <button
               onClick={() => setStatusFilter('overdue')}
-              className={`px-3 py-1.5 rounded-lg transition ${
+              className={`px-3 py-1.5 rounded-md transition ${
                 statusFilter === 'overdue'
-                  ? 'bg-rose-600 text-white shadow'
+                  ? 'bg-slate-800 text-rose-300 border border-rose-800/60 shadow-sm'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -290,9 +308,9 @@ export default function Invoices() {
             </button>
             <button
               onClick={() => setStatusFilter('paid')}
-              className={`px-3 py-1.5 rounded-lg transition ${
+              className={`px-3 py-1.5 rounded-md transition ${
                 statusFilter === 'paid'
-                  ? 'bg-emerald-600 text-white shadow'
+                  ? 'bg-slate-800 text-emerald-300 border border-emerald-800/60 shadow-sm'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -300,36 +318,39 @@ export default function Invoices() {
             </button>
           </div>
           <HelpTip
-            title="Filter Status Tagihan"
-            text="Belum Lunas: Menunggu bayar namun belum jatuh tempo. Overdue: Lewat tanggal jatuh tempo dan menjadi target Auto-Isolir MikroTik. Lunas: Sudah dibayar."
+            title="Siklus Status Tagihan"
+            text="Belum Lunas: Tagihan menunggu pelunasan. Overdue: Melewati jatuh tempo dan otomatis masuk daftar isolir. Lunas: Tagihan selesai dan akun router aktif normal."
           />
         </div>
 
-        <div className="w-full lg:w-72">
+        <div className="w-full lg:w-72 relative">
+          <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+            <Search className="w-3.5 h-3.5" />
+          </span>
           <input
             type="text"
-            placeholder="Cari pelanggan, user, periode..."
+            placeholder="Cari pelanggan, username, periode..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+            className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-sans"
           />
         </div>
       </div>
 
       {/* INVOICES DISPLAY: DESKTOP TABLE & MOBILE CARDS */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-        {/* DESKTOP TABLE (md and up) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        {/* DESKTOP TABLE */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
+            <thead className="bg-slate-950/70 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
               <tr>
-                <th className="p-4">Inv #</th>
-                <th className="p-4">Pelanggan</th>
-                <th className="p-4">Periode</th>
-                <th className="p-4">Nominal</th>
-                <th className="p-4">Jatuh Tempo</th>
-                <th className="p-4">Status &amp; MikroTik</th>
-                <th className="p-4">Aksi Pembayaran</th>
+                <th className="p-3.5">Inv #</th>
+                <th className="p-3.5">Pelanggan</th>
+                <th className="p-3.5">Periode</th>
+                <th className="p-3.5">Nominal</th>
+                <th className="p-3.5">Jatuh Tempo</th>
+                <th className="p-3.5">Status &amp; RouterOS</th>
+                <th className="p-3.5">Aksi Pelunasan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 font-sans">
@@ -342,7 +363,7 @@ export default function Invoices() {
               ) : filteredInvoices.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center p-12 text-slate-400">
-                    Tidak ada tagihan yang sesuai.
+                    Tidak ada tagihan yang sesuai kriteria.
                   </td>
                 </tr>
               ) : (
@@ -353,51 +374,50 @@ export default function Invoices() {
                   const isIsolated = cust?.status === 'isolated';
 
                   return (
-                    <tr key={inv.id} className="hover:bg-slate-850/60 transition">
-                      <td className="p-4 font-mono font-bold text-slate-400">
+                    <tr key={inv.id} className="hover:bg-slate-850/40 transition">
+                      <td className="p-3.5 font-mono text-slate-400">
                         #{inv.id}
                       </td>
 
-                      <td className="p-4">
+                      <td className="p-3.5">
                         <div className="font-bold text-slate-200">
                           {inv.customer_name || cust?.name || `ID ${inv.customer_id}`}
                         </div>
-                        <div className="text-[11px] text-blue-400 font-mono">
+                        <div className="text-[11px] text-cyan-400 font-mono">
                           {inv.pppoe_user || cust?.pppoe_user}
                         </div>
                       </td>
 
-                      <td className="p-4 font-mono font-medium text-slate-300">
+                      <td className="p-3.5 font-mono text-slate-300">
                         {inv.period}
                       </td>
 
-                      <td className="p-4 font-bold text-emerald-400 font-mono">
+                      <td className="p-3.5 font-bold text-emerald-400 font-mono">
                         {formatRupiah(inv.amount)}
                       </td>
 
-                      <td className="p-4 font-mono text-slate-400">
+                      <td className="p-3.5 font-mono text-slate-400">
                         {inv.due_date}
                       </td>
 
-                      {/* STATUS & SINKRONISASI MIKROTIK */}
-                      <td className="p-4">
+                      <td className="p-3.5">
                         <div className="flex flex-col gap-1 items-start">
                           {inv.status === 'paid' ? (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
-                              ✓ LUNAS
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-800">
+                              LUNAS
                             </span>
                           ) : isOverdue ? (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-800 animate-pulse">
-                              ⚠️ OVERDUE
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-950/80 text-rose-300 border border-rose-800">
+                              OVERDUE
                             </span>
                           ) : (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-800">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-950/80 text-amber-300 border border-amber-800">
                               PENDING
                             </span>
                           )}
 
                           <span className="text-[10px] text-slate-400 font-mono">
-                            RouterOS:{' '}
+                            Router:{' '}
                             <strong className={isIsolated ? 'text-rose-400' : 'text-emerald-400'}>
                               {isIsolated ? 'ISOLIR' : 'AKTIF'}
                             </strong>
@@ -405,27 +425,19 @@ export default function Invoices() {
                         </div>
                       </td>
 
-                      {/* AKSI */}
-                      <td className="p-4">
+                      <td className="p-3.5">
                         {inv.status === 'paid' ? (
                           <div className="text-[11px] text-slate-500 font-mono">
                             Lunas: {inv.paid_at ? inv.paid_at.slice(0, 16) : '-'}
                           </div>
                         ) : (
-                          <div className="inline-flex items-center">
-                            <button
-                              onClick={() => pay(inv.id, inv.customer_name || cust?.name)}
-                              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs shadow-md shadow-emerald-600/25 transition flex items-center gap-1.5"
-                            >
-                              <span>✓</span>
-                              <span>Bayar &amp; Buka Isolir</span>
-                            </button>
-                            <HelpTip
-                              title="Bayar & Buka Isolir Otomatis"
-                              text="Mencatat pembayaran tagihan menjadi LUNAS. Jika seluruh tagihan pelanggan sudah beres, sistem langsung mengaktifkan kembali secret PPPoE di MikroTik dan mencabut IP dari blacklist firewall."
-                              tip="Internet pelanggan langsung pulih seketika."
-                            />
-                          </div>
+                          <button
+                            onClick={() => pay(inv.id, inv.customer_name || cust?.name)}
+                            className="px-2.5 py-1.5 rounded-lg bg-emerald-600/90 hover:bg-emerald-500 text-white font-medium text-xs transition flex items-center gap-1.5 shadow-sm"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Bayar &amp; Buka Isolir</span>
+                          </button>
                         )}
                       </td>
                     </tr>
@@ -436,15 +448,15 @@ export default function Invoices() {
           </table>
         </div>
 
-        {/* MOBILE INVOICE CARDS (md:hidden) - BEBAS NABRAK */}
+        {/* MOBILE INVOICE CARDS */}
         <div className="md:hidden divide-y divide-slate-800/80 p-3 space-y-3">
           {loading ? (
-            <div className="text-center py-8 text-slate-400 text-xs">
+            <div className="text-center py-6 text-slate-400 text-xs">
               Memuat data tagihan...
             </div>
           ) : filteredInvoices.length === 0 ? (
-            <div className="text-center py-10 text-slate-400 text-xs">
-              Tidak ada tagihan yang sesuai.
+            <div className="text-center py-8 text-slate-400 text-xs">
+              Tidak ada tagihan ditemukan.
             </div>
           ) : (
             filteredInvoices.map((inv) => {
@@ -454,72 +466,66 @@ export default function Invoices() {
               const isIsolated = cust?.status === 'isolated';
 
               return (
-                <div key={inv.id} className="pt-3 first:pt-0 space-y-3">
+                <div key={inv.id} className="pt-3 first:pt-0 space-y-2.5">
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-xs text-slate-400">#{inv.id}</span>
-                        <div className="font-bold text-slate-100 text-sm">
+                        <span className="font-mono text-xs text-slate-400">#{inv.id}</span>
+                        <div className="font-bold text-slate-100 text-xs sm:text-sm">
                           {inv.customer_name || cust?.name || `ID ${inv.customer_id}`}
                         </div>
                       </div>
-                      <div className="text-[11px] text-blue-400 font-mono mt-0.5">
-                        {inv.pppoe_user || cust?.pppoe_user} &bull; Periode: {inv.period}
+                      <div className="text-[11px] text-cyan-400 font-mono mt-0.5">
+                        {inv.pppoe_user || cust?.pppoe_user} &bull; {inv.period}
                       </div>
                     </div>
                     <div>
                       {inv.status === 'paid' ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 whitespace-nowrap">
-                          ✓ LUNAS
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-800">
+                          LUNAS
                         </span>
                       ) : isOverdue ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-800 whitespace-nowrap animate-pulse">
-                          ⚠️ OVERDUE
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-950/80 text-rose-300 border border-rose-800">
+                          OVERDUE
                         </span>
                       ) : (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-800 whitespace-nowrap">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-950/80 text-amber-300 border border-amber-800">
                           PENDING
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 text-xs font-mono grid grid-cols-2 gap-2">
+                  <div className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs font-mono grid grid-cols-2 gap-2">
                     <div>
-                      <span className="text-[10px] text-slate-500 block uppercase font-sans">Nominal Tagihan</span>
-                      <span className="text-emerald-400 font-bold text-sm">{formatRupiah(inv.amount)}</span>
+                      <span className="text-[10px] text-slate-500 block font-sans">Nominal</span>
+                      <span className="text-emerald-400 font-bold text-xs">{formatRupiah(inv.amount)}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-500 block uppercase font-sans">Jatuh Tempo</span>
+                      <span className="text-[10px] text-slate-500 block font-sans">Jatuh Tempo</span>
                       <span className="text-slate-300 text-xs">{inv.due_date}</span>
                     </div>
-                    <div className="col-span-2 border-t border-slate-800/80 pt-1.5 flex items-center justify-between text-[11px]">
-                      <span className="text-slate-400 font-sans">Status MikroTik:</span>
-                      <span className="font-bold font-mono">
-                        RouterOS: <strong className={isIsolated ? 'text-rose-400' : 'text-emerald-400'}>{isIsolated ? 'ISOLIR' : 'AKTIF'}</strong>
-                      </span>
+                    <div className="col-span-2 border-t border-slate-800 pt-1.5 flex items-center justify-between text-[11px]">
+                      <span className="text-slate-400 font-sans">Status RouterOS:</span>
+                      <strong className={isIsolated ? 'text-rose-400' : 'text-emerald-400'}>
+                        {isIsolated ? 'ISOLIR' : 'AKTIF'}
+                      </strong>
                     </div>
                   </div>
 
                   <div>
                     {inv.status === 'paid' ? (
-                      <div className="text-center py-2 text-[11px] text-slate-500 font-mono bg-slate-950/50 rounded-xl border border-slate-800/50">
+                      <div className="text-center py-1.5 text-[11px] text-slate-500 font-mono bg-slate-950/50 rounded-lg border border-slate-800">
                         Lunas pada: {inv.paid_at ? inv.paid_at.slice(0, 16) : '-'}
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => pay(inv.id, inv.customer_name || cust?.name)}
-                          className="flex-1 h-11 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 active:from-emerald-700 active:to-teal-700 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2"
-                        >
-                          <span>✓</span>
-                          <span>Bayar &amp; Buka Isolir RouterOS</span>
-                        </button>
-                        <HelpTip
-                          title="Bayar & Buka Isolir"
-                          text="Membayar tagihan ini menjadi Lunas. Akun di MikroTik langsung diaktifkan kembali dan firewall isolir dibuka."
-                        />
-                      </div>
+                      <button
+                        onClick={() => pay(inv.id, inv.customer_name || cust?.name)}
+                        className="w-full py-2 rounded-lg bg-emerald-600/90 active:bg-emerald-600 text-white font-semibold text-xs shadow transition flex items-center justify-center gap-1.5"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Bayar &amp; Buka Isolir</span>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -534,78 +540,80 @@ export default function Invoices() {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <form
             onSubmit={create}
-            className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4"
+            className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4"
           >
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-lg font-bold text-white">Buat Tagihan Pelanggan</h3>
+              <h3 className="text-sm sm:text-base font-bold text-white">Buat Tagihan Pelanggan Baru</h3>
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-white font-bold"
+                className="text-slate-400 hover:text-white p-1 rounded-lg transition"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div>
-              <label className="text-xs font-medium text-slate-300 block mb-1">
-                Pilih Pelanggan *
-              </label>
-              <select
-                required
-                value={form.customer_id}
-                onChange={(e) => setForm({ ...form, customer_id: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-medium"
-              >
-                <option value="">-- Pilih Pelanggan --</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.pppoe_user}) - {c.package}
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="text-slate-300 font-medium block mb-1">
+                  Pilih Pelanggan *
+                </label>
+                <select
+                  required
+                  value={form.customer_id}
+                  onChange={(e) => setForm({ ...form, customer_id: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-medium"
+                >
+                  <option value="">-- Pilih Pelanggan --</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.pppoe_user}) - {c.package}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-slate-300 font-medium block mb-1">
+                  Periode Tagihan (YYYY-MM) *
+                </label>
+                <input
+                  type="month"
+                  required
+                  value={form.period}
+                  onChange={(e) => setForm({ ...form, period: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-300 font-medium block mb-1">
+                  Nominal Tagihan (Rp) *
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={form.amount}
+                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-300 font-medium block mb-1">
+                  Tanggal Jatuh Tempo *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={form.due_date}
+                  onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="text-xs font-medium text-slate-300 block mb-1">
-                Periode Tagihan (YYYY-MM) *
-              </label>
-              <input
-                type="month"
-                required
-                value={form.period}
-                onChange={(e) => setForm({ ...form, period: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-slate-300 block mb-1">
-                Nominal Tagihan (Rp) *
-              </label>
-              <input
-                type="number"
-                required
-                value={form.amount}
-                onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-slate-300 block mb-1">
-                Tanggal Jatuh Tempo *
-              </label>
-              <input
-                type="date"
-                required
-                value={form.due_date}
-                onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
-              />
-            </div>
-
-            <div className="flex gap-2.5 pt-2">
+            <div className="flex gap-2.5 pt-2 border-t border-slate-800">
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
@@ -615,7 +623,7 @@ export default function Invoices() {
               </button>
               <button
                 type="submit"
-                className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold text-xs p-2.5 rounded-xl transition shadow"
+                className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs p-2.5 rounded-xl transition shadow"
               >
                 Simpan Tagihan
               </button>

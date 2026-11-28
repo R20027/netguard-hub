@@ -2,6 +2,26 @@ import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import {
+  Crosshair,
+  Radio,
+  Building2,
+  MapPin,
+  Server,
+  Compass,
+  RefreshCw,
+  Search,
+  Plus,
+  Trash2,
+  Edit3,
+  X,
+  Eye,
+  Navigation,
+  CheckCircle2,
+  AlertTriangle,
+  Layers,
+  LocateFixed
+} from 'lucide-react';
 import { API } from './api';
 import HelpTip from './HelpTip';
 
@@ -991,7 +1011,7 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
             <button
               onClick={() => detectUserLocation(true)}
               disabled={locatingUser}
-              className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/30 transition flex items-center justify-center gap-1.5"
+              className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl font-bold text-xs bg-cyan-600 hover:bg-cyan-500 text-white shadow-sm transition flex items-center justify-center gap-1.5"
             >
               {locatingUser ? (
                 <>
@@ -1000,13 +1020,13 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
                 </>
               ) : (
                 <>
-                  <span>🎯</span>
+                  <Crosshair className="w-3.5 h-3.5" />
                   <span>Posisi Saya (GPS)</span>
                 </>
               )}
             </button>
             <HelpTip
-              title="Deteksi Lokasi GPS Anda (Google Maps Style)"
+              title="Deteksi Lokasi GPS (Google Maps Style)"
               text="Menampilkan titik biru berdenyut persis seperti Google Maps di lokasi Anda saat ini, lengkap dengan nama desa/kelurahan, kecamatan, dan akurasi meter."
               tip="Gunakan tombol ini untuk langsung menemukan posisi Anda di Jember atau lokasi kerja Anda."
             />
@@ -1015,9 +1035,9 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
           <div className="inline-flex items-center">
             <button
               onClick={handleSetNocToCurrentGPS}
-              className="flex-1 sm:flex-none px-3 py-2 rounded-xl font-semibold text-xs bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 transition flex items-center justify-center gap-1.5"
+              className="flex-1 sm:flex-none px-3 py-2 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 transition flex items-center justify-center gap-1.5"
             >
-              <span>📡</span>
+              <Radio className="w-3.5 h-3.5 text-emerald-400" />
               <span>Router NOC &rarr; GPS</span>
             </button>
             <HelpTip
@@ -1029,9 +1049,9 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
           <div className="inline-flex items-center">
             <button
               onClick={handleSyncToPTSatellite}
-              className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl font-bold text-xs bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 text-white shadow-md shadow-cyan-900/30 transition flex items-center justify-center gap-1.5"
+              className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-800/80 transition flex items-center justify-center gap-1.5"
             >
-              <span>🏢</span>
+              <Building2 className="w-3.5 h-3.5 text-cyan-400" />
               <span>PT Satelit Global Media (Jember)</span>
             </button>
             <HelpTip
@@ -1043,9 +1063,9 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
           <div className="inline-flex items-center">
             <button
               onClick={() => setShowPinModal(true)}
-              className="flex-1 sm:flex-none px-3 py-2 rounded-xl font-semibold text-xs bg-amber-600/90 hover:bg-amber-500 text-white transition flex items-center justify-center gap-1.5 shadow"
+              className="flex-1 sm:flex-none px-3 py-2 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 transition flex items-center justify-center gap-1.5"
             >
-              <span>📌</span>
+              <MapPin className="w-3.5 h-3.5 text-amber-400" />
               <span>Pin / Pindah Lokasi</span>
             </button>
             <HelpTip
@@ -1057,9 +1077,9 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
           <div className="inline-flex items-center">
             <button
               onClick={() => setShowDeviceModal(true)}
-              className="flex-1 sm:flex-none px-3 py-2 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition flex items-center justify-center gap-1.5"
+              className="flex-1 sm:flex-none px-3 py-2 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center justify-center gap-1.5"
             >
-              <span>🖥️</span>
+              <Server className="w-3.5 h-3.5 text-cyan-400" />
               <span>Kelola Node ({devices.length})</span>
             </button>
             <HelpTip
@@ -1073,7 +1093,7 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
               onClick={centerToNoc}
               className="flex-1 sm:flex-none px-3 py-2 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center justify-center gap-1.5"
             >
-              <span>📡</span>
+              <Compass className="w-3.5 h-3.5 text-slate-400" />
               <span>Fokus NOC</span>
             </button>
             <HelpTip
@@ -1086,9 +1106,9 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
             <button
               onClick={loadMapPoints}
               disabled={loading}
-              className="flex-1 sm:flex-none px-3 py-2 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700 transition flex items-center justify-center gap-1.5"
+              className="flex-1 sm:flex-none px-3 py-2 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center justify-center gap-1.5"
             >
-              <span>🔄</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
               <span>Refresh</span>
             </button>
             <HelpTip
