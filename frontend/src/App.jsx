@@ -346,34 +346,16 @@ function App() {
     }
   };
 
-  const getRoleHeaderBadge = () => {
-    switch (userRole) {
-      case 'noc':
-        return (
-          <span className="px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-black uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-500/50">
-            NOC MONITOR (READ-ONLY)
-          </span>
-        );
-      case 'teknisi':
-        return (
-          <span className="px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/50">
-            TEKNISI PSB &amp; LAPANGAN
-          </span>
-        );
-      case 'bendahara':
-        return (
-          <span className="px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/50">
-            BENDAHARA &amp; KEUANGAN
-          </span>
-        );
-      case 'admin':
-      default:
-        return (
-          <span className="px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-black uppercase bg-rose-500/20 text-rose-300 border border-rose-500/50">
-            SUPER ADMIN
-          </span>
-        );
-    }
+  const handleRoleChange = (newRole) => {
+    setUserRole(newRole);
+    localStorage.setItem('guardhub_role', newRole);
+    const roleNames = {
+      admin: 'Super Admin (Semua Menu)',
+      noc: 'NOC (Monitoring Read-Only)',
+      teknisi: 'Teknisi (Mapping & PSB)',
+      bendahara: 'Bendahara (Keuangan & Tagihan)',
+    };
+    showToast(`Peran dialihkan ke: ${roleNames[newRole] || newRole}`, 'info');
   };
 
   // Tampilan loading saat verifikasi autentikasi awal
@@ -407,71 +389,75 @@ function App() {
     }`}>
       {/* TOP HEADER */}
       <header className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex justify-between items-center gap-2 sm:gap-3">
-          {/* Logo & Identity */}
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 flex justify-between items-center gap-2 sm:gap-3">
+          {/* Logo & Identity with In-App Role Switcher */}
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-sm shrink-0">
-              <ShieldCheck className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center text-cyan-500 shrink-0">
+              <ShieldCheck className="w-5 h-5 text-cyan-500" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-nowrap">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-sm sm:text-base font-black tracking-tight text-white flex items-center shrink-0">
-                  <span className="font-extrabold tracking-tight">NetGuard</span>
-                  <span className="text-cyan-400 ml-0.5 font-extrabold">Hub</span>
+                  <span>NetGuard</span>
+                  <span className="text-cyan-500 ml-0.5">Hub</span>
                 </h1>
-                {getRoleHeaderBadge()}
-                <button
-                  type="button"
-                  onClick={() => setShowShareModal(true)}
-                  className="text-[9px] sm:text-[10px] px-2 py-0.5 rounded-md font-semibold bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-800/80 tracking-wide transition shrink-0 hidden sm:flex items-center gap-1"
-                  title="Lihat alamat akses Web Server untuk semua perangkat LAN"
-                >
-                  <Globe className="w-3 h-3 text-cyan-400" />
-                  <span>Akses LAN</span>
-                </button>
+
+                {/* Pilih Role di Dalam (In-App Role Switcher) */}
+                <div className="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700/90 rounded-xl px-2 py-0.5 text-xs">
+                  <span className="text-slate-400 text-[11px] font-medium hidden sm:inline">Peran:</span>
+                  <select
+                    id="role-select"
+                    value={userRole}
+                    onChange={(e) => handleRoleChange(e.target.value)}
+                    className="bg-transparent text-xs font-bold text-cyan-400 outline-none cursor-pointer pr-1"
+                    title="Pilih peran pengguna di dalam aplikasi"
+                  >
+                    <option value="admin" className="bg-slate-900 text-slate-100">Super Admin (Semua Menu)</option>
+                    <option value="noc" className="bg-slate-900 text-slate-100">NOC (Monitor Read-Only)</option>
+                    <option value="teknisi" className="bg-slate-900 text-slate-100">Teknisi (Mapping &amp; PSB)</option>
+                    <option value="bendahara" className="bg-slate-900 text-slate-100">Bendahara (Keuangan &amp; Tagihan)</option>
+                  </select>
+                </div>
               </div>
-              <p className="text-slate-400 text-[10px] sm:text-xs hidden sm:block font-mono tracking-tight">
-                {userFullName} (@{currentUser}) &bull; Curahkalong Bangsalsari
-              </p>
             </div>
           </div>
 
           {/* Quick Controls: Theme Switcher, Large Text Toggle & Logout */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Minimalist Switch Light / Dark Mode */}
             <button
               type="button"
               onClick={toggleTheme}
-              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition text-xs border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200"
-              title={theme === 'dark' ? 'Ubah ke Tampilan Terang (Light Mode)' : 'Ubah ke Tampilan Gelap (Dark Mode)'}
+              className="p-1.5 sm:px-2.5 sm:py-1 rounded-xl font-semibold flex items-center gap-1.5 transition text-xs border border-slate-700/80 bg-slate-800/80 hover:bg-slate-700 text-slate-200"
+              title={theme === 'dark' ? 'Ubah ke Mode Terang' : 'Ubah ke Mode Gelap'}
             >
               {theme === 'dark' ? (
                 <>
                   <Sun className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="hidden sm:inline">Terang</span>
+                  <span className="hidden sm:inline text-xs">Terang</span>
                 </>
               ) : (
                 <>
                   <Moon className="w-3.5 h-3.5 text-slate-600" />
-                  <span className="hidden sm:inline">Gelap</span>
+                  <span className="hidden sm:inline text-xs">Gelap</span>
                 </>
               )}
             </button>
 
-            {/* Tombol Aksesibilitas Umur & Lapangan: Ramah Mata */}
+            {/* Tombol Aksesibilitas: Teks Besar */}
             <button
               type="button"
               onClick={toggleLargeText}
-              className={`px-2.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition text-xs border ${
+              className={`p-1.5 sm:px-2.5 sm:py-1 rounded-xl font-bold flex items-center gap-1.5 transition text-xs border ${
                 isLargeText
-                  ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-950/50'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                  ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700/80'
               }`}
-              title="Ubah ukuran huruf agar lebih mudah dibaca di lapangan atau oleh lansia"
+              title="Perbesar teks untuk kemudahan membaca"
             >
               <Type className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">
-                {isLargeText ? 'Teks Besar (Aktif)' : 'Teks Besar'}
+              <span className="hidden sm:inline text-xs">
+                {isLargeText ? 'Teks Besar' : 'Teks'}
               </span>
             </button>
 
@@ -479,11 +465,11 @@ function App() {
             <button
               type="button"
               onClick={handleLogout}
-              className="p-1.5 sm:px-3 sm:py-1.5 rounded-xl font-semibold bg-rose-950/60 hover:bg-rose-900 border border-rose-800/60 text-rose-200 transition text-xs flex items-center gap-1.5"
+              className="p-1.5 sm:px-2.5 sm:py-1 rounded-xl font-semibold bg-rose-950/60 hover:bg-rose-900 border border-rose-800/60 text-rose-200 transition text-xs flex items-center gap-1"
               title="Keluar dari sesi saat ini"
             >
-              <LogOut className="w-4 h-4 text-rose-400" />
-              <span className="hidden sm:inline">Keluar</span>
+              <LogOut className="w-3.5 h-3.5 text-rose-400" />
+              <span className="hidden sm:inline text-xs">Keluar</span>
             </button>
           </div>
         </div>
@@ -498,13 +484,13 @@ function App() {
                 <button
                   key={t.id}
                   onClick={() => setTab(t.id)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition whitespace-nowrap ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition whitespace-nowrap ${
                     active
-                      ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 shadow-sm'
+                      ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-sm'
                       : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
                   }`}
                 >
-                  <TabIcon className={`w-4 h-4 ${active ? 'text-cyan-400' : 'text-slate-400'}`} />
+                  <TabIcon className={`w-3.5 h-3.5 ${active ? 'text-cyan-400' : 'text-slate-400'}`} />
                   <span>{t.label}</span>
                   {t.badge && (
                     <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold text-white ${t.badgeColor || 'bg-rose-500'}`}>
@@ -518,54 +504,38 @@ function App() {
         </div>
       </header>
 
-      {/* QUICK STATUS BAR */}
-      <section className="bg-slate-900/60 border-b border-slate-800/80 px-3 sm:px-6 py-2 text-xs">
-        <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2 sm:gap-3">
-          {/* Status Router MikroTik & Role Hint */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            {userRole === 'noc' && (
-              <div className="flex items-center gap-1.5 bg-cyan-950/60 border border-cyan-800/60 px-2.5 py-1 rounded-lg text-cyan-300 text-[11px] font-mono">
-                <Shield className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Mode Aman NOC: Read-Only (Proteksi Anti-Ubah Data Aktif)</span>
+      {/* QUICK STATUS BAR (MINIMALIST & CLEAN) */}
+      <section className="bg-slate-900/60 border-b border-slate-800/80 px-3 sm:px-6 py-1.5 text-xs">
+        <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
+          {/* Status Router MikroTik & Role Mode */}
+          <div className="flex items-center gap-2">
+            {mtStatus?.connected ? (
+              <div className="flex items-center gap-1.5 bg-emerald-950/40 border border-emerald-800/60 px-2 py-0.5 rounded-lg text-emerald-300 text-[11px] font-mono">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>{mtStatus.identity || 'RouterOS'} Online</span>
+                <span className="text-emerald-500/50">({mtStatus.latency_ms}ms)</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 bg-rose-950/40 border border-rose-800/60 px-2 py-0.5 rounded-lg text-rose-300 text-[11px] font-mono">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                <span>MikroTik Terputus ({mtStatus?.host || '192.168.88.1'})</span>
               </div>
             )}
 
-            {mtStatus?.connected ? (
-              <div className="flex items-center gap-2 bg-emerald-950/40 border border-emerald-800/60 px-2.5 py-1 rounded-lg text-emerald-300 text-[11px] font-mono">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span className="font-semibold">{mtStatus.identity || 'RouterOS'}</span>
-                <span className="text-emerald-500/50">|</span>
-                <span className="flex items-center gap-1">
-                  <Cpu className="w-3 h-3 text-emerald-400" />
-                  {mtStatus.cpu_load || '0'}%
-                </span>
-                <span className="text-emerald-500/50 hidden sm:inline">|</span>
-                <span className="hidden sm:flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-emerald-400" />
-                  {mtStatus.latency_ms}ms
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 bg-rose-950/40 border border-rose-800/60 px-2.5 py-1 rounded-lg text-rose-300 text-[11px] font-mono">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                <span>MikroTik Disconnected ({mtStatus?.host || '192.168.88.1'})</span>
-              </div>
+            {userRole === 'noc' && (
+              <span className="text-cyan-400 font-mono text-[11px] hidden sm:inline">
+                &bull; Mode Baca Saja (Read-Only)
+              </span>
             )}
           </div>
 
-          {/* Quick Metrics */}
+          {/* Quick Metrics Sederhana */}
           {stats && (
-            <div className="hidden sm:flex items-center gap-3 font-mono text-[11px] text-slate-400">
-              <span className="text-slate-300">
-                Pelanggan: <strong className="text-emerald-400">{stats.active_customers} Aktif</strong> / <strong className="text-rose-400">{stats.isolated_customers} Isolir</strong>
-              </span>
-              <span className="text-slate-700">|</span>
-              <span className="text-slate-300">
-                Tagihan: <strong className="text-amber-400">{stats.unpaid_invoices} Pending</strong>
-                {stats.overdue_invoices > 0 && (
-                  <span className="ml-1 text-rose-400 font-bold">({stats.overdue_invoices} Overdue)</span>
-                )}
-              </span>
+            <div className="flex items-center gap-2 text-slate-400 text-xs font-mono">
+              <span>{stats.active_customers} Pelanggan Aktif</span>
+              {stats.unpaid_invoices > 0 && (
+                <span className="text-amber-400">&bull; {stats.unpaid_invoices} Tagihan Pending</span>
+              )}
             </div>
           )}
         </div>

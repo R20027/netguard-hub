@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API, isGitHubPages } from './api';
-import { Shield, ShieldAlert, AlertCircle, Eye, EyeOff, Lock, User, ArrowRight, Loader2, Sparkles, CheckCircle2, Sun, Moon } from 'lucide-react';
+import { Shield, ShieldAlert, AlertCircle, Eye, EyeOff, Lock, User, ArrowRight, Loader2, Sun, Moon } from 'lucide-react';
 
 export default function Login({ onLoginSuccess }) {
   const [username, setUsername] = useState('admin');
@@ -27,7 +27,7 @@ export default function Login({ onLoginSuccess }) {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  // Countdown timer saat sistem terkunci karena salah 3x
+  // Countdown timer saat salah password 3x
   useEffect(() => {
     if (lockoutSeconds <= 0) return;
     const timer = setInterval(() => {
@@ -42,12 +42,6 @@ export default function Login({ onLoginSuccess }) {
     }, 1000);
     return () => clearInterval(timer);
   }, [lockoutSeconds]);
-
-  const selectRoleShortcut = (u, p) => {
-    setUsername(u);
-    setPassword(p);
-    setErrorMsg('');
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -84,11 +78,11 @@ export default function Login({ onLoginSuccess }) {
       if (err.response?.status === 429 || data?.locked) {
         const waitSec = data?.retry_after || 60;
         setLockoutSeconds(waitSec);
-        setErrorMsg(data?.error || `Percobaan login gagal berulang. Akses ditangguhkan selama ${waitSec} detik demi keamanan.`);
+        setErrorMsg(data?.error || `Akses dijeda selama ${waitSec} detik demi keamanan.`);
         return;
       }
 
-      // Jika pada GitHub Pages (tanpa server backend) atau offline demo:
+      // Fallback offline / static demo
       const isOnlineStatic = isGitHubPages || !err.response || err.response?.status === 404 || err.code === 'ERR_NETWORK';
       if (isOnlineStatic) {
         let validRole = null;
@@ -119,7 +113,7 @@ export default function Login({ onLoginSuccess }) {
         }
       }
 
-      setErrorMsg(data?.error || 'Kombinasi pengguna dan kata sandi tidak valid.');
+      setErrorMsg(data?.error || 'Username atau password salah.');
     } finally {
       setLoading(false);
     }
@@ -127,17 +121,17 @@ export default function Login({ onLoginSuccess }) {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 selection:bg-cyan-500 selection:text-black">
-      <div className="w-full max-w-sm sm:max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl relative z-10 space-y-6">
-        {/* Top Header Controls: Theme Switcher */}
-        <div className="flex justify-between items-center">
+      <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-7 shadow-xl relative z-10 space-y-5">
+        {/* Header Logo & Simple Switch Theme */}
+        <div className="flex justify-between items-center pb-2 border-b border-slate-800">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center text-cyan-500">
-              <Shield className="w-5 h-5 text-cyan-500" />
+            <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700/80 flex items-center justify-center text-cyan-500">
+              <Shield className="w-4 h-4 text-cyan-500" />
             </div>
             <div>
-              <h1 className="text-base font-black tracking-tight text-white flex items-center gap-1">
+              <h1 className="text-base font-black tracking-tight text-white flex items-center">
                 <span>NetGuard</span>
-                <span className="text-cyan-500">Hub</span>
+                <span className="text-cyan-500 ml-0.5">Hub</span>
               </h1>
             </div>
           </div>
@@ -145,40 +139,33 @@ export default function Login({ onLoginSuccess }) {
           <button
             type="button"
             onClick={toggleTheme}
-            className="p-2 rounded-xl border border-slate-700/80 bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition text-xs flex items-center gap-1.5"
+            className="p-1.5 rounded-lg border border-slate-700/80 bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition text-xs flex items-center gap-1"
             title={theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'}
           >
             {theme === 'dark' ? (
-              <>
-                <Sun className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-[11px] font-semibold">Terang</span>
-              </>
+              <Sun className="w-3.5 h-3.5 text-amber-400" />
             ) : (
-              <>
-                <Moon className="w-3.5 h-3.5 text-slate-600" />
-                <span className="text-[11px] font-semibold">Gelap</span>
-              </>
+              <Moon className="w-3.5 h-3.5 text-slate-600" />
             )}
           </button>
         </div>
 
-        {/* Subtitle */}
-        <div className="text-left space-y-1 border-b border-slate-800 pb-3">
-          <h2 className="text-lg font-bold text-white tracking-tight">Masuk ke Sistem</h2>
-          <p className="text-slate-400 text-xs">
-            Portal manajemen MikroTik RouterOS &amp; kontrol peran (RBAC).
+        <div>
+          <h2 className="text-sm font-bold text-white tracking-tight">Masuk Akun</h2>
+          <p className="text-slate-400 text-xs mt-0.5">
+            Silakan masukkan kredensial Anda.
           </p>
         </div>
 
-        {/* Form Login */}
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs font-sans">
+        {/* Form Login Sederhana */}
+        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs font-sans">
           <div>
-            <label className="block text-slate-300 font-semibold mb-1.5 text-xs">
-              Nama Pengguna (Username)
+            <label className="block text-slate-300 font-medium mb-1 text-xs">
+              Username
             </label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                <User className="w-4 h-4" />
+                <User className="w-3.5 h-3.5" />
               </span>
               <input
                 required
@@ -187,19 +174,19 @@ export default function Login({ onLoginSuccess }) {
                 disabled={lockoutSeconds > 0 || loading}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin / noc / teknisi / bendahara"
-                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl pl-9 pr-3.5 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition disabled:opacity-50 font-mono"
+                placeholder="Masukkan username"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-slate-500 outline-none transition disabled:opacity-50"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-slate-300 font-semibold mb-1.5 text-xs">
-              Kata Sandi (Password)
+            <label className="block text-slate-300 font-medium mb-1 text-xs">
+              Password
             </label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                <Lock className="w-4 h-4" />
+                <Lock className="w-3.5 h-3.5" />
               </span>
               <input
                 required
@@ -208,23 +195,23 @@ export default function Login({ onLoginSuccess }) {
                 disabled={lockoutSeconds > 0 || loading}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Masukkan kata sandi akun"
-                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl pl-9 pr-10 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition disabled:opacity-50 font-mono"
+                placeholder="Masukkan kata sandi"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl pl-9 pr-9 py-2 text-sm text-white placeholder-slate-500 outline-none transition disabled:opacity-50"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200 transition"
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
             </div>
           </div>
 
-          {/* Pesan Kesalahan / Warning */}
+          {/* Pesan Kesalahan */}
           {errorMsg && (
             <div
-              className={`p-3 rounded-xl border text-xs leading-relaxed flex items-start gap-2.5 ${
+              className={`p-2.5 rounded-xl border text-xs leading-relaxed flex items-start gap-2 ${
                 lockoutSeconds > 0
                   ? 'bg-rose-950/70 border-rose-800 text-rose-200'
                   : 'bg-amber-950/70 border-amber-800 text-amber-200'
@@ -236,26 +223,21 @@ export default function Login({ onLoginSuccess }) {
                 <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
               )}
               <div className="flex-1">
-                <div className="font-bold text-[11px] uppercase tracking-wider mb-0.5">
-                  {lockoutSeconds > 0 ? 'Proteksi Keamanan Aktif' : 'Autentikasi Gagal'}
-                </div>
                 <p>{errorMsg}</p>
                 {lockoutSeconds > 0 && (
-                  <div className="mt-2 text-center py-1.5 bg-black/40 rounded-lg font-mono font-bold text-rose-300 text-xs">
-                    {lockoutSeconds > 60
-                      ? `Jeda keamanan: ${Math.floor(lockoutSeconds / 60)} menit ${lockoutSeconds % 60} detik`
-                      : `Jeda keamanan: ${lockoutSeconds} detik`}
+                  <div className="mt-1 font-mono text-rose-300 font-bold text-xs">
+                    Tunggu {lockoutSeconds} detik...
                   </div>
                 )}
               </div>
             </div>
           )}
 
-          {/* Tombol Submit */}
+          {/* Tombol Masuk */}
           <button
             type="submit"
             disabled={lockoutSeconds > 0 || loading}
-            className={`w-full py-2.5 rounded-xl font-bold text-sm tracking-wide text-white transition flex items-center justify-center gap-2 ${
+            className={`w-full py-2.5 rounded-xl font-bold text-xs tracking-wide text-white transition flex items-center justify-center gap-1.5 ${
               lockoutSeconds > 0
                 ? 'bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed'
                 : 'bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 shadow-sm'
@@ -263,68 +245,23 @@ export default function Login({ onLoginSuccess }) {
           >
             {loading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin text-white" />
-                <span>Memverifikasi Akses...</span>
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                <span>Memverifikasi...</span>
               </>
             ) : lockoutSeconds > 0 ? (
               <span>Sistem Ditangguhkan</span>
             ) : (
               <>
-                <span>Masuk Sistem</span>
-                <ArrowRight className="w-4 h-4" />
+                <span>Masuk</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </>
             )}
           </button>
         </form>
-
-        {/* Petunjuk Cepat 4 Role (Minimalist & Ergonomis) */}
-        <div className="border-t border-slate-800 pt-3.5 space-y-2">
-          <div className="flex items-center justify-between text-slate-400 text-[11px]">
-            <span className="font-medium text-slate-400">Pilih Akun Cepat (Demo):</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 text-[11px]">
-            <button
-              type="button"
-              onClick={() => selectRoleShortcut('admin', 'rois_admin')}
-              className="p-2 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 text-left transition"
-            >
-              <div className="font-bold text-rose-400">Admin</div>
-              <div className="text-[10px] text-slate-400">Semua menu</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => selectRoleShortcut('noc', 'noc_admin')}
-              className="p-2 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 text-left transition"
-            >
-              <div className="font-bold text-cyan-400">NOC</div>
-              <div className="text-[10px] text-slate-400">Read-Only Monitor</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => selectRoleShortcut('teknisi', 'teknisi_admin')}
-              className="p-2 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 text-left transition"
-            >
-              <div className="font-bold text-emerald-400">Teknisi</div>
-              <div className="text-[10px] text-slate-400">Mapping &amp; PSB</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => selectRoleShortcut('bendahara', 'bendahara_admin')}
-              className="p-2 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 text-left transition"
-            >
-              <div className="font-bold text-amber-400">Bendahara</div>
-              <div className="text-[10px] text-slate-400">Keuangan &amp; PPN</div>
-            </button>
-          </div>
-        </div>
       </div>
 
-      <footer className="mt-5 text-[11px] text-slate-500 font-mono text-center">
-        NetGuard Hub &bull; Protected by WAF Shield &bull; Port 8080
+      <footer className="mt-4 text-[11px] text-slate-500 font-mono text-center">
+        NetGuard Hub &bull; Bangsalsari Jember
       </footer>
     </div>
   );
