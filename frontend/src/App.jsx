@@ -383,42 +383,33 @@ function App() {
     );
   }
 
+  const ROLES = [
+    { id: 'admin', label: 'Admin', desc: 'Semua Menu', icon: '👑' },
+    { id: 'noc', label: 'NOC', desc: 'Monitor & Read-Only', icon: '🖥️' },
+    { id: 'teknisi', label: 'Teknisi', desc: 'Peta & PSB', icon: '🛠️' },
+    { id: 'bendahara', label: 'Bendahara', desc: 'Keuangan & Tagihan', icon: '💰' },
+  ];
+
   return (
     <div className={`min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-black ${
       isLargeText ? 'text-base font-normal' : 'text-sm font-normal'
     }`}>
       {/* TOP HEADER */}
-      <header className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50 shadow-sm">
+      <header className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 flex justify-between items-center gap-2 sm:gap-3">
-          {/* Logo & Identity with In-App Role Switcher */}
+          {/* Logo & Identity */}
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center text-cyan-500 shrink-0">
               <ShieldCheck className="w-5 h-5 text-cyan-500" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-sm sm:text-base font-black tracking-tight text-white flex items-center shrink-0">
-                  <span>NetGuard</span>
-                  <span className="text-cyan-500 ml-0.5">Hub</span>
-                </h1>
-
-                {/* Pilih Role di Dalam (In-App Role Switcher) */}
-                <div className="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700/90 rounded-xl px-2 py-0.5 text-xs">
-                  <span className="text-slate-400 text-[11px] font-medium hidden sm:inline">Peran:</span>
-                  <select
-                    id="role-select"
-                    value={userRole}
-                    onChange={(e) => handleRoleChange(e.target.value)}
-                    className="bg-transparent text-xs font-bold text-cyan-400 outline-none cursor-pointer pr-1"
-                    title="Pilih peran pengguna di dalam aplikasi"
-                  >
-                    <option value="admin" className="bg-slate-900 text-slate-100">Super Admin (Semua Menu)</option>
-                    <option value="noc" className="bg-slate-900 text-slate-100">NOC (Monitor Read-Only)</option>
-                    <option value="teknisi" className="bg-slate-900 text-slate-100">Teknisi (Mapping &amp; PSB)</option>
-                    <option value="bendahara" className="bg-slate-900 text-slate-100">Bendahara (Keuangan &amp; Tagihan)</option>
-                  </select>
-                </div>
-              </div>
+              <h1 className="text-base font-black tracking-tight text-white flex items-center shrink-0">
+                <span>NetGuard</span>
+                <span className="text-cyan-500 ml-0.5">Hub</span>
+              </h1>
+              <p className="text-[10px] text-slate-400 font-mono hidden sm:block">
+                PT Satelit Global Media &bull; Bangsalsari Jember
+              </p>
             </div>
           </div>
 
@@ -474,8 +465,45 @@ function App() {
           </div>
         </div>
 
+        {/* ROLE PILIH DI DALAM (PROMINENT SEGMENTED CONTROL) */}
+        <div className="border-t border-slate-800/80 bg-slate-950/70 px-3 sm:px-6 py-1.5">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1 hidden sm:inline">
+                Pilih Role:
+              </span>
+              <div className="inline-flex bg-slate-900 p-0.5 rounded-xl border border-slate-800/90 gap-0.5 w-full sm:w-auto">
+                {ROLES.map((r) => {
+                  const active = userRole === r.id;
+                  return (
+                    <button
+                      key={r.id}
+                      onClick={() => handleRoleChange(r.id)}
+                      className={`flex-1 sm:flex-initial px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                        active
+                          ? 'bg-cyan-600 text-white shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                      }`}
+                      title={`${r.label}: ${r.desc}`}
+                    >
+                      <span className="text-xs">{r.icon}</span>
+                      <span>{r.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Role Info badge */}
+            <div className="hidden sm:flex items-center gap-2 text-[11px] font-mono text-slate-400">
+              <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+              <span>Aktif: <strong className="text-cyan-300 font-bold uppercase">{userRole}</strong> ({ROLES.find(r => r.id === userRole)?.desc})</span>
+            </div>
+          </div>
+        </div>
+
         {/* DESKTOP NAVIGATION TABS */}
-        <div className="border-t border-slate-800/80 hidden md:block bg-slate-900/60">
+        <div className="border-t border-slate-800/80 hidden md:block bg-slate-900/40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center gap-1 overflow-x-auto py-1">
             {tabs.map((t) => {
               const TabIcon = t.Icon;

@@ -989,594 +989,206 @@ export default function NocMap({ focusTarget, onClearFocusTarget, isLargeText, u
   };
 
   return (
-    <div className="space-y-4">
-      {/* HEADER SECTION */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-              🗺️ Peta Titik Gangguan &amp; Topologi Jaringan
-            </h2>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-800 animate-pulse">
-              LIVE GIS
-            </span>
-          </div>
-          <p className="text-slate-400 text-xs mt-1 max-w-2xl leading-relaxed">
-            Visualisasi koordinat real-time menggunakan CARTO, OSM Jalan Detail, &amp; Satelit Esri hingga zoom rumah pelanggan. Klik <strong className="text-cyan-400">(!)</strong> di samping tombol untuk penjelasan fungsi.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 w-full lg:w-auto">
-          <div className="inline-flex items-center">
-            <button
-              onClick={() => detectUserLocation(true)}
-              disabled={locatingUser}
-              className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl font-bold text-xs bg-cyan-600 hover:bg-cyan-500 text-white shadow-sm transition flex items-center justify-center gap-1.5"
-            >
-              {locatingUser ? (
-                <>
-                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                  <span>Mencari GPS...</span>
-                </>
-              ) : (
-                <>
-                  <Crosshair className="w-3.5 h-3.5" />
-                  <span>Posisi Saya (GPS)</span>
-                </>
-              )}
-            </button>
-            <HelpTip
-              title="Deteksi Lokasi GPS (Google Maps Style)"
-              text="Menampilkan titik biru berdenyut persis seperti Google Maps di lokasi Anda saat ini, lengkap dengan nama desa/kelurahan, kecamatan, dan akurasi meter."
-              tip="Gunakan tombol ini untuk langsung menemukan posisi Anda di Jember atau lokasi kerja Anda."
-            />
-          </div>
-
-          <div className="inline-flex items-center">
-            <button
-              onClick={handleSetNocToCurrentGPS}
-              className="flex-1 sm:flex-none px-3 py-2 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 transition flex items-center justify-center gap-1.5"
-            >
-              <Radio className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Router NOC &rarr; GPS</span>
-            </button>
-            <HelpTip
-              title="Pindahkan Router NOC ke Titik GPS Anda"
-              text="Menjadikan titik GPS Anda saat ini sebagai koordinat Router Pusat (NOC). Sangat berguna jika server Anda berada di Jember agar tidak lagi di Jakarta."
-            />
-          </div>
-
-          <div className="inline-flex items-center">
-            <button
-              onClick={handleSyncToPTSatellite}
-              className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-800/80 transition flex items-center justify-center gap-1.5"
-            >
-              <Building2 className="w-3.5 h-3.5 text-cyan-400" />
-              <span>PT Satelit Global Media (Jember)</span>
-            </button>
-            <HelpTip
-              title="Pusatkan ke PT Satelit Global Media"
-              text="Menyelaraskan Router NOC dan seluruh koordinat jaringan langsung ke kantor PT Satelit Global Media di Sanggrahan Curahkalong Bangsalsari, Jember (-8.130588, 113.540639)."
-            />
-          </div>
-
-          <div className="inline-flex items-center">
-            <button
-              onClick={() => setShowPinModal(true)}
-              className="flex-1 sm:flex-none px-3 py-2 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 transition flex items-center justify-center gap-1.5"
-            >
-              <MapPin className="w-3.5 h-3.5 text-amber-400" />
-              <span>Pin / Pindah Lokasi</span>
-            </button>
-            <HelpTip
-              title="Mode Pasang / Koreksi Koordinat Peta"
-              text="Memungkinkan Anda memilih Router NOC, Switch/ODP, Rumah Pelanggan, atau Tiket Gangguan lalu mengklik lokasi tepatnya langsung pada peta."
-            />
-          </div>
-
-          <div className="inline-flex items-center">
-            <button
-              onClick={() => setShowDeviceModal(true)}
-              className="flex-1 sm:flex-none px-3 py-2 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center justify-center gap-1.5"
-            >
-              <Server className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Kelola Node ({devices.length})</span>
-            </button>
-            <HelpTip
-              title="Kelola Node Infrastruktur"
-              text="Menambah, melihat, ping manual, atau menghapus perangkat infrastruktur (Switch, OLT, ODP, Tower, Server) yang muncul di peta."
-            />
-          </div>
-
-          <div className="inline-flex items-center">
-            <button
-              onClick={centerToNoc}
-              className="flex-1 sm:flex-none px-3 py-2 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center justify-center gap-1.5"
-            >
-              <Compass className="w-3.5 h-3.5 text-slate-400" />
-              <span>Fokus NOC</span>
-            </button>
-            <HelpTip
-              title="Pusatkan Peta ke Router NOC"
-              text="Mengembalikan tampilan peta ke titik koordinat Router Pusat NOC Anda."
-            />
-          </div>
-
-          <div className="inline-flex items-center">
-            <button
-              onClick={loadMapPoints}
-              disabled={loading}
-              className="flex-1 sm:flex-none px-3 py-2 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center justify-center gap-1.5"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
-            </button>
-            <HelpTip
-              title="Refresh Titik Peta"
-              text="Mengambil ulang koordinat dan status terbaru dari server."
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* BANNER LIVE GPS POSISI PENGGUNA (DESA / KECAMATAN / KOTA) */}
-      {userLocation && (
-        <div className="bg-gradient-to-r from-blue-950/90 via-slate-900 to-cyan-950/90 border border-cyan-700/80 rounded-2xl p-3 sm:p-4 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-blue-600/30 border border-blue-400 text-blue-300 text-xl shrink-0 shadow-lg">
-              <span>📍</span>
-              <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-cyan-400 animate-ping"></span>
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-bold text-cyan-300 flex items-center gap-1">
-                  <span>Posisi Anda (Live Blue Dot):</span>
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-semibold font-mono">
-                  &plusmn;{Math.round(userLocation.accuracy)} meter
-                </span>
-              </div>
-              <div className="text-sm font-black text-white tracking-tight mt-0.5 truncate">
-                {userLocation.addressName}
-              </div>
-              <div className="text-[11px] font-mono text-slate-400">
-                Lat: {userLocation.lat.toFixed(6)}, Lng: {userLocation.lng.toFixed(6)}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto shrink-0">
-            <button
-              onClick={() => {
-                if (mapInstanceRef.current) {
-                  mapInstanceRef.current.flyTo([userLocation.lat, userLocation.lng], 17, { duration: 1.0 });
-                }
-              }}
-              className="flex-1 md:flex-none px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow flex items-center justify-center gap-1"
-            >
-              <span>🎯</span>
-              <span>Pusatkan Peta</span>
-            </button>
-
-            <button
-              onClick={handleSetNocToCurrentGPS}
-              className="flex-1 md:flex-none px-3 py-1.5 rounded-xl bg-emerald-950 hover:bg-emerald-900 border border-emerald-700 text-emerald-300 text-xs font-semibold transition flex items-center justify-center gap-1"
-            >
-              <span>📡</span>
-              <span>Pindah NOC ke Sini</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setNewDevice({
-                  id: `NODE-${Date.now().toString().slice(-4)}`,
-                  name: `Node ${userLocation.village || 'Area'}`,
-                  ip: '192.168.1.1',
-                  lat: userLocation.lat.toFixed(6),
-                  lng: userLocation.lng.toFixed(6),
-                });
-                setShowDeviceModal(true);
-              }}
-              className="flex-1 md:flex-none px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-cyan-300 text-xs font-semibold transition flex items-center justify-center gap-1"
-            >
-              <span>➕</span>
-              <span>Pasang Device di Sini</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* NOTIFIKASI RELOKASI NOC DARI JAKARTA KE JEMBER / POSISI NYATA */}
-      {locationNotice && (
-        <div className="bg-amber-950/80 border-2 border-amber-600/80 rounded-2xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xl">
-          <div className="text-xs text-amber-100 space-y-1">
-            <div className="font-bold text-amber-300 text-sm flex items-center gap-1.5">
-              <span>⚠️</span>
-              <span>Router Pusat Masih Berada di Jakarta Default (-6.1754, 106.8272)</span>
-            </div>
-            <div>
-              Lokasi Anda terdeteksi di: <strong>{locationNotice.addressName}</strong>. Pindahkan Router NOC ke lokasi Anda agar device, topologi, dan pelanggan muncul sesuai wilayah kerja Anda!
-            </div>
-          </div>
-          <button
-            onClick={handleSetNocToCurrentGPS}
-            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-lg transition flex items-center justify-center gap-1.5 shrink-0"
-          >
-            <span>⚡</span>
-            <span>Pindahkan Router NOC ke Sini</span>
-          </button>
-        </div>
-      )}
-
-      {/* SEARCH BAR + AREA PRESETS (JEMBER, SURABAYA, JAKARTA) + TOPOLOGY */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 space-y-2.5">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
-          <form onSubmit={handleSearchLocation} className="flex items-center gap-2 flex-1">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari desa, kecamatan, kota (misal: Kaliwates Jember, Patrang, Sumbersari)..."
-              className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
-            />
-            <button
-              type="submit"
-              disabled={searchingLoc}
-              className="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs transition shrink-0"
-            >
-              {searchingLoc ? 'Mencari...' : '🔍 Cari Area'}
-            </button>
-            <HelpTip
-              title="Cari Nama Wilayah / Jalan"
-              text="Memindahkan tampilan peta langsung ke kota, kecamatan, atau jalan tempat jaringan Anda beroperasi menggunakan OpenStreetMap Geocoder."
-            />
-          </form>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex items-center">
-              <button
-                onClick={() => setShowTopology((v) => !v)}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${showTopology
-                    ? 'bg-cyan-950 text-cyan-300 border-cyan-700'
-                    : 'bg-slate-950 text-slate-400 border-slate-800'
-                  }`}
-              >
-                🔗 Garis Topologi: {showTopology ? 'ON' : 'OFF'}
-              </button>
-              <HelpTip
-                title="Garis Jalur Topologi Jaringan"
-                text="Menampilkan garis penghubung dari Router Pusat NOC ke setiap node perangkat & pelanggan. Garis merah putus-putus menandakan titik sedang bermasalah/terisolir."
-              />
-            </div>
-
-            <div className="inline-flex items-center">
-              <button
-                onClick={handlePingAll}
-                disabled={pinging}
-                className="px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white transition shadow"
-              >
-                {pinging ? '⏳ Mengecek...' : '📡 Ping Semua Node'}
-              </button>
-              <HelpTip
-                title="Ping Semua Node Infrastruktur"
-                text="Mengetes konektivitas ICMP ping langsung dari server ke seluruh Switch/Router/Server terdaftar dan otomatis memperbarui status UP/DOWN serta tiket P0."
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* PRESET CHIP KOTA CEPAT (LOMPAT CEPAT TANPA KETIK) */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1 text-xs text-slate-400">
-          <span className="text-[11px] font-bold text-slate-500 shrink-0">📍 Lompat Cepat:</span>
-          <button
-            type="button"
-            onClick={() => jumpToLocation(-8.130588, 113.540639, 17, 'PT Satelit Global Media (Sanggrahan Curahkalong)')}
-            className="shrink-0 px-2.5 py-1 rounded-lg bg-cyan-950 hover:bg-cyan-900 border border-cyan-700 text-cyan-200 text-[11px] font-bold transition flex items-center gap-1 shadow-sm"
-          >
-            🏢 PT SGM (Sanggrahan Curahkalong)
-          </button>
-          <button
-            type="button"
-            onClick={() => jumpToLocation(-8.1724, 113.6995, 14, 'Alun-alun Jember')}
-            className="shrink-0 px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-cyan-950 border border-slate-800 hover:border-cyan-700 text-cyan-300 text-[11px] font-semibold transition"
-          >
-            🏛️ Alun-alun Jember
-          </button>
-          <button
-            type="button"
-            onClick={() => jumpToLocation(-8.1845, 113.6688, 14, 'Kaliwates Jember')}
-            className="shrink-0 px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-cyan-950 border border-slate-800 hover:border-cyan-700 text-slate-300 text-[11px] transition"
-          >
-            🏘️ Kaliwates
-          </button>
-          <button
-            type="button"
-            onClick={() => jumpToLocation(-8.1633, 113.7169, 14, 'Sumbersari Jember')}
-            className="shrink-0 px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-cyan-950 border border-slate-800 hover:border-cyan-700 text-slate-300 text-[11px] transition"
-          >
-            🎓 Sumbersari
-          </button>
-          <button
-            type="button"
-            onClick={() => jumpToLocation(-8.1517, 113.7022, 14, 'Patrang Jember')}
-            className="shrink-0 px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-cyan-950 border border-slate-800 hover:border-cyan-700 text-slate-300 text-[11px] transition"
-          >
-            🏥 Patrang
-          </button>
-          <button
-            type="button"
-            onClick={() => jumpToLocation(-7.2575, 112.7521, 13, 'Surabaya')}
-            className="shrink-0 px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400 text-[11px] transition"
-          >
-            🏙️ Surabaya
-          </button>
-          <button
-            type="button"
-            onClick={() => jumpToLocation(-6.1754, 106.8272, 13, 'Jakarta')}
-            className="shrink-0 px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400 text-[11px] transition"
-          >
-            🗼 Jakarta
-          </button>
+    <div className="space-y-3">
+      {/* MINIMALIST HEADER & QUICK CONTROLS */}
+      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl px-4 py-3 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
+            <span>🗺️</span>
+            <span>Peta Topologi &amp; GPS</span>
+          </h2>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">
+            {problemPoints.length > 0 ? `${problemPoints.length} Gangguan` : 'Jaringan Normal'}
+          </span>
           {userLocation && (
+            <span className="text-[11px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-800/60">
+              📍 {userLocation.village || 'GPS Aktif'} (&plusmn;{Math.round(userLocation.accuracy)}m)
+            </span>
+          )}
+        </div>
+
+        {/* Quick Actions */}
+        <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={handleSyncToPTSatellite}
+            title="Pusatkan ke kantor PT Satelit Global Media (Sanggrahan Curahkalong Bangsalsari)"
+            className="flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold bg-cyan-950 hover:bg-cyan-900 border border-cyan-700 text-cyan-200 transition flex items-center justify-center gap-1 shadow-sm"
+          >
+            <span>🏢</span>
+            <span>PT SGM</span>
+          </button>
+
+          {userRole !== 'noc' && (
             <button
               type="button"
-              onClick={() => {
-                if (mapInstanceRef.current) {
-                  mapInstanceRef.current.flyTo([userLocation.lat, userLocation.lng], 17, { duration: 1.0 });
-                }
-              }}
-              className="shrink-0 px-2.5 py-1 rounded-lg bg-blue-950 hover:bg-blue-900 border border-blue-700 text-blue-300 text-[11px] font-bold transition flex items-center gap-1"
+              onClick={() => setShowPinModal(true)}
+              title="Koreksi atau pasang titik lokasi pelanggan / node di peta"
+              className="flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 transition flex items-center justify-center gap-1"
             >
-              <span>🎯</span>
-              <span>Posisi Saya ({userLocation.village || 'GPS'})</span>
+              <span>📌</span>
+              <span>Pin Titik</span>
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={() => setShowDeviceModal(true)}
+            title="Kelola daftar node switch, ODP, router, dan server"
+            className="flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center justify-center gap-1"
+          >
+            <span>🖥️</span>
+            <span>Node ({devices.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={loadMapPoints}
+            disabled={loading}
+            title="Muat ulang data titik koordinat"
+            className="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center justify-center"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 
       {/* BANNER AKTIF SAAT MODE PIN LOKASI */}
       {pinMode && (
-        <div className="bg-amber-950/90 border-2 border-amber-500 rounded-2xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 animate-pulse shadow-lg">
+        <div className="bg-amber-950/95 border-2 border-amber-500 rounded-xl p-3 flex items-center justify-between gap-2 shadow-lg animate-pulse">
           <div className="text-xs text-amber-100">
-            <strong className="text-amber-300 text-sm block">📌 MODE PIN LOKASI AKTIF: {pinMode.label}</strong>
-            Silakan geser/zoom peta ke posisi rumah/tiang sebenarnya, lalu <strong>KLIK DI ATAS PETA</strong> untuk menyimpan koordinat akurat!
+            <strong className="text-amber-300 block">📌 Mode Pasang Titik Aktif: {pinMode.label}</strong>
+            Klik langsung pada peta untuk menyimpan koordinat GPS yang tepat.
           </div>
           <button
             onClick={() => setPinMode(null)}
-            className="px-3 py-1.5 rounded-lg bg-slate-900 text-white border border-amber-600 text-xs font-bold shrink-0"
+            className="px-3 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white border border-amber-600 text-xs font-bold shrink-0"
           >
             Batal
           </button>
         </div>
       )}
 
-      {/* PERINGATAN PELANGGAN BELUM DIPIN */}
-      {unpinnedCustomers > 0 && (
-        <div className="bg-slate-900 border border-amber-800/70 rounded-xl px-4 py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
-          <span className="text-amber-300">
-            ℹ️ Ada <strong>{unpinnedCustomers} pelanggan</strong> yang belum dipasang titik koordinat GPS rumah. Untuk menjaga akurasi, titik acak tidak ditampilkan.
-          </span>
-          <button
-            onClick={() => {
-              setPinCategory('customer');
-              setShowPinModal(true);
-            }}
-            className="px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-semibold text-[11px] shrink-0"
-          >
-            📌 Pasang Koordinat Pelanggan
-          </button>
-        </div>
-      )}
-
-      {/* STATS STRIP */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-        <div className="bg-slate-900/90 border border-rose-900/50 rounded-xl p-3 flex items-center justify-between">
-          <div>
-            <span className="text-slate-400 block text-[11px]">Titik Gangguan Aktif</span>
-            <strong className="text-xl text-rose-400 font-black">{problemPoints.length} Titik</strong>
-          </div>
-          <span className="w-3 h-3 rounded-full bg-rose-500 animate-ping"></span>
-        </div>
-
-        <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
-          <div>
-            <span className="text-slate-400 block text-[11px]">Node Infrastruktur</span>
-            <strong className="text-xl text-cyan-400 font-black">{deviceCount} Node</strong>
-          </div>
-          <span className="text-xl">🖥️</span>
-        </div>
-
-        <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
-          <div>
-            <span className="text-slate-400 block text-[11px]">Pelanggan Terpetakan</span>
-            <strong className="text-xl text-emerald-400 font-black">{customerCount} CPE</strong>
-          </div>
-          <span className="text-xl">🏠</span>
-        </div>
-
-        <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
-          <div>
-            <span className="text-slate-400 block text-[11px]">Koordinat NOC Pusat</span>
-            <strong className="text-[11px] text-cyan-300 font-mono">
-              {Number(nocCenter.lat || 0).toFixed(4)}, {Number(nocCenter.lng || 0).toFixed(4)}
-            </strong>
-          </div>
-          <span className="text-xl">📡</span>
-        </div>
-      </div>
-
-      {/* QUICK DEVICE MAP CHIPS */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 shadow-md space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-            <span>📍 Titik Device Infrastruktur ({devices.length}):</span>
-            <span className="text-[11px] text-slate-400 font-normal hidden md:inline">
-              Klik device untuk langsung terbang dan memusatkan peta ke titik lokasinya
-            </span>
-          </div>
-          <button
-            onClick={() => setShowDeviceModal(true)}
-            className="text-[11px] text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1"
-          >
-            <span>⚙️ Kelola Titik Node</span>
-            <span>&rarr;</span>
-          </button>
-        </div>
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-          <button
-            onClick={centerToNoc}
-            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-cyan-800/80 text-cyan-300 text-xs font-semibold transition shadow-sm"
-          >
-            <span>📡</span>
-            <span>NOC Router</span>
-            <span className="text-[10px] font-mono text-cyan-400/80">({Number(nocCenter.lat || 0).toFixed(4)}, {Number(nocCenter.lng || 0).toFixed(4)})</span>
-          </button>
-          {devices.map((d) => (
-            <button
-              key={d.id}
-              onClick={() => focusOnPoint({ id: d.id, lat: d.lat, lng: d.lng, type: 'device' })}
-              title={`Fokus ke ${d.name} (${d.ip})`}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition shadow-sm ${d.status === 'down'
-                  ? 'bg-rose-950/80 hover:bg-rose-900 border-rose-700 text-rose-300'
-                  : 'bg-slate-950 hover:bg-slate-850 border-slate-800 text-slate-200'
-                }`}
-            >
-              <span className={`w-2 h-2 rounded-full ${d.status === 'down' ? 'bg-rose-500 animate-ping' : 'bg-emerald-400'}`}></span>
-              <span>{d.name}</span>
-              <span className="text-[10px] font-mono text-slate-400">
-                {d.lat && d.lng ? `(${Number(d.lat).toFixed(4)}, ${Number(d.lng).toFixed(4)})` : '⚠️ Belum Dipin'}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* MAP WRAPPER WITH CONTROLS OVERLAY */}
+      {/* MAP WRAPPER (FULL HEIGHT GOOGLE MAPS STYLE) */}
       <div
-        className={`relative border rounded-2xl overflow-hidden shadow-2xl h-[520px] md:h-[600px] ${pinMode ? 'border-amber-500 ring-2 ring-amber-500/40 cursor-crosshair' : 'border-slate-800'
-          }`}
+        className={`relative border rounded-2xl overflow-hidden shadow-2xl h-[calc(100vh-210px)] min-h-[500px] md:min-h-[620px] ${
+          pinMode ? 'border-amber-500 ring-2 ring-amber-500/40 cursor-crosshair' : 'border-slate-800'
+        }`}
         style={{ backgroundColor: (MAP_STYLES[mapStyle] || MAP_STYLES.voyager).bg }}
       >
-        {/* MOBILE CONTROLS OVERLAY */}
-        <div className="md:hidden absolute top-2.5 left-2.5 right-2.5 z-[1000] space-y-2">
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar bg-slate-950/95 backdrop-blur-md p-1.5 rounded-xl border border-slate-800 shadow-xl text-xs font-semibold whitespace-nowrap">
+        {/* FLOATING TOP SEARCH & FILTER BAR */}
+        <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-2 max-w-xl">
+          {/* Search Box */}
+          <form onSubmit={handleSearchLocation} className="flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800 shadow-2xl">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari desa / area (mis: Bangsalsari, Curahkalong, Patrang)..."
+              className="flex-1 bg-transparent px-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={searchingLoc}
+              className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow transition shrink-0"
+            >
+              {searchingLoc ? '...' : 'Cari'}
+            </button>
+          </form>
+
+          {/* Floating Filter Pills */}
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar bg-slate-950/85 backdrop-blur-md p-1 rounded-xl border border-slate-800 shadow-xl text-xs font-semibold whitespace-nowrap">
             <button
               onClick={() => setFilterType('all')}
-              className={`px-3 py-1.5 rounded-lg transition ${filterType === 'all' ? 'bg-blue-600 text-white shadow' : 'text-slate-400'}`}
+              className={`px-2.5 py-1 rounded-lg transition ${filterType === 'all' ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
             >
               Semua ({points.length})
             </button>
             <button
               onClick={() => setFilterType('problem')}
-              className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1 ${filterType === 'problem' ? 'bg-rose-600 text-white shadow' : 'text-rose-400'}`}
+              className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1 ${filterType === 'problem' ? 'bg-rose-600 text-white shadow' : 'text-rose-400 hover:text-rose-300'}`}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping"></span>
               Gangguan ({problemPoints.length})
             </button>
             <button
               onClick={() => setFilterType('device')}
-              className={`px-3 py-1.5 rounded-lg transition ${filterType === 'device' ? 'bg-cyan-600 text-white shadow' : 'text-slate-400'}`}
+              className={`px-2.5 py-1 rounded-lg transition ${filterType === 'device' ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
             >
-              Node/Router
+              Node ({deviceCount})
             </button>
             <button
               onClick={() => setFilterType('customer')}
-              className={`px-3 py-1.5 rounded-lg transition ${filterType === 'customer' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400'}`}
+              className={`px-2.5 py-1 rounded-lg transition ${filterType === 'customer' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
             >
-              Pelanggan
+              Pelanggan ({customerCount})
             </button>
-          </div>
 
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar bg-slate-950/95 backdrop-blur-md p-1.5 rounded-xl border border-slate-800 shadow-xl text-[11px] font-semibold whitespace-nowrap">
-            {Object.values(MAP_STYLES).map((st) => (
-              <button
-                key={st.id}
-                onClick={() => setMapStyle(st.id)}
-                className={`px-2.5 py-1 rounded-lg transition ${mapStyle === st.id ? 'bg-cyan-600 text-white shadow' : 'text-slate-400'}`}
-              >
-                {st.shortName}
-              </button>
-            ))}
-          </div>
-        </div>
+            <span className="text-slate-700 px-0.5">|</span>
 
-        {/* DESKTOP CONTROLS OVERLAY */}
-        <div className="hidden md:flex absolute top-4 left-4 z-[1000] flex-wrap items-center gap-1.5 bg-slate-950/90 backdrop-blur-md p-1.5 rounded-xl border border-slate-800 shadow-xl text-xs font-semibold">
-          <button
-            onClick={() => setFilterType('all')}
-            className={`px-3 py-1.5 rounded-lg transition ${filterType === 'all' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
-          >
-            Semua Titik ({points.length})
-          </button>
-          <button
-            onClick={() => setFilterType('problem')}
-            className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${filterType === 'problem' ? 'bg-rose-600 text-white shadow' : 'text-rose-400 hover:text-white'}`}
-          >
-            <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping"></span>
-            Hanya Gangguan ({problemPoints.length})
-          </button>
-          <button
-            onClick={() => setFilterType('device')}
-            className={`px-3 py-1.5 rounded-lg transition ${filterType === 'device' ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
-          >
-            Infrastruktur &amp; Router
-          </button>
-          <button
-            onClick={() => setFilterType('customer')}
-            className={`px-3 py-1.5 rounded-lg transition ${filterType === 'customer' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
-          >
-            Pelanggan CPE
-          </button>
-        </div>
-
-        <div className="hidden md:flex absolute top-4 right-4 z-[1000] items-center gap-1 bg-slate-950/90 backdrop-blur-md p-1 rounded-xl border border-slate-800 shadow-xl text-xs font-semibold">
-          {Object.values(MAP_STYLES).map((st) => (
+            {/* Layer Switch (Jalan vs Satelit vs Dark) */}
             <button
-              key={st.id}
-              onClick={() => setMapStyle(st.id)}
-              title={`Ubah tampilan peta ke ${st.name}`}
-              className={`px-2.5 py-1.5 rounded-lg transition ${mapStyle === st.id ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+              onClick={() => setMapStyle(mapStyle === 'satellite' ? 'voyager' : 'satellite')}
+              className="px-2 py-1 rounded-lg text-amber-300 hover:text-white bg-slate-900 border border-slate-700 text-[11px]"
+              title="Beralih antara peta jalan dan citra satelit"
             >
-              {st.name}
+              {mapStyle === 'satellite' ? '🗺️ Peta Jalan' : '🛰️ Satelit'}
             </button>
-          ))}
-        </div>
-
-        {/* Legend Overlay */}
-        <div className="absolute bottom-4 left-4 z-[1000] bg-slate-950/90 backdrop-blur-md p-3 rounded-xl border border-slate-800 shadow-xl text-[11px] text-slate-300 space-y-1.5 font-sans hidden sm:block">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between gap-4">
-            <span>Legenda Marker</span>
-            <span className="text-emerald-400 font-mono">MAX ZOOM 21</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-rose-500 animate-ping"></span>
-            <span>Merah: Gangguan / Down / Isolir</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-cyan-400"></span>
-            <span>Sian: Router NOC &amp; Switch/ODP</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-emerald-400"></span>
-            <span>Hijau: Pelanggan PPPoE Online</span>
           </div>
         </div>
 
-        {/* Floating Google Maps Style 'My Location' FAB */}
-        <button
-          type="button"
-          onClick={() => detectUserLocation(true)}
-          disabled={locatingUser}
-          title="Fokuskan ke Posisi GPS Saya Saat Ini (Live Blue Dot)"
-          className="absolute bottom-5 right-5 z-[1000] w-12 h-12 rounded-full bg-slate-900/95 hover:bg-slate-800 text-cyan-400 hover:text-white border-2 border-cyan-500/80 shadow-2xl flex items-center justify-center text-xl transition transform active:scale-90"
-        >
-          {locatingUser ? (
-            <span className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></span>
-          ) : (
-            <span>🎯</span>
-          )}
-        </button>
+        {/* FLOATING ACTION BUTTONS (BOTTOM RIGHT - GOOGLE MAPS STYLE) */}
+        <div className="absolute bottom-4 right-4 z-[1000] flex flex-col items-center gap-2">
+          {/* Topologi Toggle FAB */}
+          <button
+            type="button"
+            onClick={() => setShowTopology((v) => !v)}
+            title={`Garis Topologi Jalur Jaringan (${showTopology ? 'Aktif' : 'Nonaktif'})`}
+            className={`w-10 h-10 rounded-full border shadow-xl flex items-center justify-center text-sm transition transform active:scale-95 ${
+              showTopology ? 'bg-cyan-600 text-white border-cyan-400' : 'bg-slate-900/90 text-slate-400 border-slate-700'
+            }`}
+          >
+            🔗
+          </button>
 
+          {/* Jump to SGM HQ FAB */}
+          <button
+            type="button"
+            onClick={handleSyncToPTSatellite}
+            title="Pusatkan ke Kantor PT Satelit Global Media (Sanggrahan Bangsalsari)"
+            className="w-10 h-10 rounded-full bg-slate-900/95 hover:bg-slate-800 text-cyan-400 border border-cyan-700/80 shadow-xl flex items-center justify-center text-sm transition transform active:scale-95"
+          >
+            🏢
+          </button>
+
+          {/* Google Maps Style My Location FAB */}
+          <button
+            type="button"
+            onClick={() => detectUserLocation(true)}
+            disabled={locatingUser}
+            title="Pusatkan ke Posisi GPS Saya (Live Blue Dot)"
+            className="w-12 h-12 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white border-2 border-cyan-300 shadow-2xl flex items-center justify-center text-lg transition transform active:scale-90"
+          >
+            {locatingUser ? (
+              <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+            ) : (
+              <span>🎯</span>
+            )}
+          </button>
+        </div>
+
+        {/* FLOATING BOTTOM LEFT STATS CHIP */}
+        <div className="absolute bottom-4 left-4 z-[1000] hidden sm:flex items-center gap-2 bg-slate-950/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 shadow-xl text-[11px] text-slate-300 font-mono">
+          <span className="text-rose-400 font-bold">{problemPoints.length} Gangguan</span>
+          <span>&bull;</span>
+          <span className="text-cyan-400 font-bold">{deviceCount} Node</span>
+          <span>&bull;</span>
+          <span className="text-emerald-400 font-bold">{customerCount} Pelanggan</span>
+          <span>&bull;</span>
+          <span className="text-slate-400">NOC: {Number(nocCenter.lat || 0).toFixed(4)}, {Number(nocCenter.lng || 0).toFixed(4)}</span>
+        </div>
+
+        {/* LEAFLET MAP ELEMENT */}
         <div ref={mapContainerRef} className="w-full h-full z-10" />
       </div>
 
