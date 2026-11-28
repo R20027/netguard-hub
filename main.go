@@ -117,10 +117,153 @@ type MikrotikConfigReq struct {
 
 var autoIsolirMu sync.Mutex
 
+// ==================== WAF & MALWARE / ATTACK TOOLS DEFENSE ====================
+
+type WAFShield struct {
+	mu          sync.Mutex
+	badStrikes  map[string]int
+	bannedUntil map[string]time.Time
+}
+
+var wafShield = &WAFShield{
+	badStrikes:  make(map[string]int),
+	bannedUntil: make(map[string]time.Time),
+}
+
+// Signature User-Agent exploit tools, scanner otomatis, & bot penyerang
+var maliciousUserAgents = []string{
+	"sqlmap", "nikto", "nuclei", "gobuster", "dirbuster", "dirb", "wpscan",
+	"masscan", "acunetix", "nessus", "havij", "zaproxy", "arachni", "openvas",
+	"burpcollaborator", "shodan", "censys", "whatweb", "hydra",
+}
+
+// Pola path traversal & file sensitif yang sering di-probe oleh malware / bot
+var suspiciousPathFragments = []string{
+	"../", "..\\", "%2e%2e", ".env", "wp-config", "phpinfo", "/etc/passwd",
+	"/etc/shadow", "boot.ini", "eval-stdin", "shell.php", ".git/", "actuator/",
+	"setup.php", "adminer.php", "myadmin", "cgi-bin", "autodiscover",
+}
+
+// Pola injection di query string (SQLi, XSS, RCE)
+var maliciousQueryPatterns = []string{
+	"union select", "union all select", "select * from", "benchmark(",
+	"waitfor delay", "xp_cmdshell", "<script", "javascript:", "onerror=",
+	"onload=", ";rm ", ";cat ", "|sh", "|bash", "$(", "${",
+}
+
+func (w *WAFShield) isBanned(ip string) (bool, int) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	until, exists := w.bannedUntil[ip]
+	if !exists {
+		return false, 0
+	}
+	now := time.Now()
+	if until.After(now) {
+		return true, int(math.Ceil(until.Sub(now).Seconds()))
+	}
+	delete(w.bannedUntil, ip)
+	delete(w.badStrikes, ip)
+	return false, 0
+}
+
+func (w *WAFShield) recordStrike(ip string) (bool, int) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.badStrikes[ip]++
+	if w.badStrikes[ip] >= 3 {
+		banTime := 15 * time.Minute
+		w.bannedUntil[ip] = time.Now().Add(banTime)
+		return true, int(banTime.Seconds())
+	}
+	return false, 0
+}
+
 // ==================== ROUTER & MAIN ====================
 
 func setupRouter() *gin.Engine {
 	r := gin.Default()
+
+	// 1. OWASP Hardened Security Headers & Payload Limit
+	r.Use(func(c *gin.Context) {
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("X-Frame-Options", "DENY")
+		c.Header("X-XSS-Protection", "1; mode=block")
+		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
+		c.Header("Permissions-Policy", "geolocation=(self), camera=(), microphone=()")
+		c.Header("Content-Security-Policy", "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; frame-ancestors 'none';")
+		c.Header("Server", "NetGuard-Shield/2.0")
+
+		// Batasi body request maksimal 15MB untuk mencegah buffer overflow & OOM exhaustion
+		if c.Request.Body != nil {
+			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 15<<20)
+		}
+
+		c.Next()
+	})
+
+	// 2. WAF (Web Application Firewall) Shield: Anti-Attack Tools, Anti-Scanner, Anti-Malware
+	r.Use(func(c *gin.Context) {
+		clientIP := c.ClientIP()
+
+		if banned, remaining := wafShield.isBanned(clientIP); banned {
+			log.Printf("🛑 [WAF BLACKLIST] IP %s diblokir sementara (%d detik lagi tersisa)", clientIP, remaining)
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error":       fmt.Sprintf("AKSES DIBLOKIR: Terdeteksi aktivitas tools/scanner berbahaya dari IP Anda. Sistem mengunci IP selama %d detik.", remaining),
+				"waf_blocked": true,
+				"retry_after": remaining,
+			})
+			return
+		}
+
+		ua := strings.ToLower(c.GetHeader("User-Agent"))
+		path := strings.ToLower(c.Request.URL.Path)
+		rawQuery := strings.ToLower(c.Request.URL.RawQuery)
+
+		// A. Deteksi User-Agent Attack Tools & Vulnerability Scanner
+		for _, tool := range maliciousUserAgents {
+			if strings.Contains(ua, tool) {
+				banned, sec := wafShield.recordStrike(clientIP)
+				log.Printf("🚨 [WAF SHIELD] Attack Tool Terdeteksi! Tool: %s | IP: %s | Target: %s", tool, clientIP, c.Request.URL.Path)
+				msg := fmt.Sprintf("SECURITY ALERT: Attack tool '%s' terdeteksi dan diblokir oleh NetGuard WAF Shield.", tool)
+				if banned {
+					msg = fmt.Sprintf("SECURITY ALERT: IP Anda telah di-blacklist selama %d detik karena menggunakan tool berbahaya (%s).", sec, tool)
+				}
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": msg, "security_alert": true})
+				return
+			}
+		}
+
+		// B. Deteksi Path Traversal & Sensitive File Probes
+		for _, frag := range suspiciousPathFragments {
+			if strings.Contains(path, frag) {
+				banned, sec := wafShield.recordStrike(clientIP)
+				log.Printf("🚨 [WAF SHIELD] Malicious Path Probe Terdeteksi! Pattern: %s | IP: %s | URL: %s", frag, clientIP, c.Request.URL.Path)
+				msg := "SECURITY ALERT: Percobaan eksploitasi path atau probe berkas sensitif diblokir."
+				if banned {
+					msg = fmt.Sprintf("SECURITY ALERT: IP Anda telah di-blacklist selama %d detik karena percobaan eksploitasi berbahaya.", sec)
+				}
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": msg, "security_alert": true})
+				return
+			}
+		}
+
+		// C. Deteksi SQL Injection, XSS, & Command Injection di Query String
+		for _, pat := range maliciousQueryPatterns {
+			if strings.Contains(rawQuery, pat) {
+				banned, sec := wafShield.recordStrike(clientIP)
+				log.Printf("🚨 [WAF SHIELD] Malicious Query Payload Terdeteksi! Pattern: %s | IP: %s | Query: %s", pat, clientIP, rawQuery)
+				msg := "SECURITY ALERT: Payload injection berbahaya terdeteksi dan diblokir."
+				if banned {
+					msg = fmt.Sprintf("SECURITY ALERT: IP Anda di-blacklist selama %d detik.", sec)
+				}
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": msg, "security_alert": true})
+				return
+			}
+		}
+
+		c.Next()
+	})
 
 	// CORS Middleware
 	r.Use(func(c *gin.Context) {
@@ -518,12 +661,9 @@ func LoginHandler(c *gin.Context) {
 	}
 
 	savedUser := GetSetting("admin_user", "admin")
-	savedPass := GetSetting("admin_pass", "syaiful_admin")
+	savedPass := GetSetting("admin_pass", "rois_admin")
 
-	// Mendukung password syaiful_admin maupun rois_admin
-	isValidPass := (req.Password == savedPass || req.Password == "syaiful_admin" || req.Password == "rois_admin")
-
-	if req.Username != savedUser || !isValidPass {
+	if req.Username != savedUser || req.Password != savedPass {
 		loginLimiter.mu.Lock()
 		att.failCount++
 		if att.failCount >= 3 {

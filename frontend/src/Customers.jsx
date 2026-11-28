@@ -966,13 +966,13 @@ export default function Customers({ onSwitchTab }) {
 
                 <div className="grid grid-cols-2 gap-2">
                   <input
-                    placeholder="Latitude (mis: -8.1969)"
+                    placeholder="Latitude (mis: -8.130588)"
                     value={form.lat}
                     onChange={(e) => setForm({ ...form, lat: e.target.value })}
                     className="bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white font-mono"
                   />
                   <input
-                    placeholder="Longitude (mis: 113.5283)"
+                    placeholder="Longitude (mis: 113.540639)"
                     value={form.lng}
                     onChange={(e) => setForm({ ...form, lng: e.target.value })}
                     className="bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white font-mono"

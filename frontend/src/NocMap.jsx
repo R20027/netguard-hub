@@ -1036,7 +1036,7 @@ export default function NocMap({ focusTarget, onClearFocusTarget }) {
             </button>
             <HelpTip
               title="Pusatkan ke PT Satelit Global Media"
-              text="Menyelaraskan Router NOC dan seluruh koordinat jaringan langsung ke kantor PT Satelit Global Media di Bangsalsari, Jember (-8.1969, 113.5283)."
+              text="Menyelaraskan Router NOC dan seluruh koordinat jaringan langsung ke kantor PT Satelit Global Media di Sanggrahan Curahkalong Bangsalsari, Jember (-8.130588, 113.540639)."
             />
           </div>
 

@@ -884,13 +884,13 @@ func TestAuthLoginRateLimiter(t *testing.T) {
 		t.Fatalf("expected 200 OK on correct login from clean IP, got %d %s", wClean.Code, wClean.Body.String())
 	}
 
-	// Test login juga sukses dengan password syaiful_admin
+	// Test login dengan password syaiful_admin HARUS DITOLAK (401 Unauthorized) karena sudah dihapus
 	cleanIP2 := "192.168.100.98:5522"
 	wSyaiful := doReq(r, "POST", "/api/v1/auth/login", map[string]string{
 		"username": "admin", "password": "syaiful_admin",
 	}, cleanIP2)
-	if wSyaiful.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK on correct login with syaiful_admin, got %d %s", wSyaiful.Code, wSyaiful.Body.String())
+	if wSyaiful.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 Unauthorized with removed password syaiful_admin, got %d %s", wSyaiful.Code, wSyaiful.Body.String())
 	}
 
 	var loginResp struct {
@@ -946,14 +946,64 @@ func getAuthToken(t *testing.T, r *gin.Engine, ip string) string {
 func TestUpdateExistingDBPassword(t *testing.T) {
 	InitDBWithDSN("./netguard.db?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
 	defer DB.Close()
-	_, err := DB.Exec("INSERT INTO settings (key, value) VALUES ('admin_pass', 'syaiful_admin') ON CONFLICT(key) DO UPDATE SET value = 'syaiful_admin'")
+	_, err := DB.Exec("INSERT INTO settings (key, value) VALUES ('admin_pass', 'rois_admin') ON CONFLICT(key) DO UPDATE SET value = 'rois_admin'")
 	if err != nil {
 		t.Fatalf("failed: %v", err)
 	}
 	_, _ = DB.Exec("INSERT INTO settings (key, value) VALUES ('admin_user', 'admin') ON CONFLICT(key) DO UPDATE SET value = 'admin'")
 	var val string
 	DB.QueryRow("SELECT value FROM settings WHERE key = 'admin_pass'").Scan(&val)
+	if val != "rois_admin" {
+		t.Fatalf("expected admin_pass 'rois_admin', got '%s'", val)
+	}
 	t.Logf("✅ netguard.db admin_pass is confirmed: %s", val)
+}
+
+func TestWAFShield_BlocksMaliciousRequests(t *testing.T) {
+	r, _ := setupTestEnv(t)
+
+	// 1. Scanner / Attack tool User-Agent (sqlmap) harus diblokir 403 Forbidden
+	req1, _ := http.NewRequest("GET", "/api/v1/auth/check", nil)
+	req1.Header.Set("User-Agent", "sqlmap/1.5.2#stable")
+	req1.RemoteAddr = "192.168.100.201:1234"
+	w1 := httptest.NewRecorder()
+	r.ServeHTTP(w1, req1)
+	if w1.Code != http.StatusForbidden || !strings.Contains(w1.Body.String(), "SECURITY ALERT") {
+		t.Fatalf("expected 403 Forbidden for sqlmap, got %d %s", w1.Code, w1.Body.String())
+	}
+
+	// 2. Scanner nikto
+	req2, _ := http.NewRequest("GET", "/api/v1/auth/check", nil)
+	req2.Header.Set("User-Agent", "Mozilla/5.00 (Nikto/2.1.6)")
+	req2.RemoteAddr = "192.168.100.202:1234"
+	w2 := httptest.NewRecorder()
+	r.ServeHTTP(w2, req2)
+	if w2.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 Forbidden for nikto, got %d %s", w2.Code, w2.Body.String())
+	}
+
+	// 3. Path Traversal probe (/.env, /etc/passwd) harus diblokir 403 Forbidden
+	req3, _ := http.NewRequest("GET", "/.env", nil)
+	req3.Header.Set("User-Agent", "Mozilla/5.0")
+	req3.RemoteAddr = "192.168.100.203:1234"
+	w3 := httptest.NewRecorder()
+	r.ServeHTTP(w3, req3)
+	if w3.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 Forbidden for /.env, got %d %s", w3.Code, w3.Body.String())
+	}
+
+	// 4. Header Keamanan OWASP harus terpasang pada request normal
+	req4, _ := http.NewRequest("GET", "/api/v1/auth/check", nil)
+	req4.Header.Set("User-Agent", "Mozilla/5.0")
+	req4.RemoteAddr = "192.168.100.204:1234"
+	w4 := httptest.NewRecorder()
+	r.ServeHTTP(w4, req4)
+	if w4.Header().Get("X-Frame-Options") != "DENY" {
+		t.Fatalf("expected X-Frame-Options: DENY, got %s", w4.Header().Get("X-Frame-Options"))
+	}
+	if w4.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Fatalf("expected X-Content-Type-Options: nosniff, got %s", w4.Header().Get("X-Content-Type-Options"))
+	}
 }
 
 func TestGatewayDetectionAndBackupExportImport(t *testing.T) {

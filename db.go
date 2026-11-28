@@ -96,7 +96,7 @@ func InitDBWithDSN(dsn string) {
 
 	// Inisialisasi default settings MikroTik & NOC jika belum ada (Presisi: Sanggrahan, Curahkalong, Bangsalsari, Jember)
 	initDefaultSetting("admin_user", "admin")
-	initDefaultSetting("admin_pass", "syaiful_admin")
+	initDefaultSetting("admin_pass", "rois_admin")
 	initDefaultSetting("mikrotik_host", "192.168.88.1")
 	initDefaultSetting("mikrotik_port", "8728")
 	initDefaultSetting("mikrotik_user", "admin")
@@ -106,8 +106,8 @@ func InitDBWithDSN(dsn string) {
 	initDefaultSetting("noc_lng", "113.540639")
 	initDefaultSetting("noc_name", "PT Satelit Global Media (Sanggrahan Curahkalong)")
 
-	// Auto-migrate password admin jika masih default lama atau rois_admin
-	_, _ = DB.Exec("UPDATE settings SET value = 'syaiful_admin' WHERE key = 'admin_pass' AND (value = 'admin123' OR value = 'admin_rois' OR value = '' OR value = 'admin')")
+	// Pastikan HANYA password rois_admin yang aktif (syaiful_admin dihapus)
+	_, _ = DB.Exec("UPDATE settings SET value = 'rois_admin' WHERE key = 'admin_pass'")
 
 	// Auto-migrate jika settings koordinat masih menunjuk ke titik lama (-8.1969 atau -6.1754)
 	_, _ = DB.Exec("UPDATE settings SET value = '-8.130588' WHERE key = 'noc_lat' AND (value LIKE '-6.17%' OR value LIKE '-8.19%' OR value = '-6.1754' OR value = '-8.1969')")
