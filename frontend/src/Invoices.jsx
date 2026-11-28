@@ -20,7 +20,7 @@ import { API } from './api';
 import HelpTip from './HelpTip';
 import { useToast } from './NotificationContext';
 
-export default function Invoices() {
+export default function Invoices({ isLargeText, userRole }) {
   const [invoices, setInvoices] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(false);

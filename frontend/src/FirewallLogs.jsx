@@ -19,7 +19,7 @@ import { API } from './api';
 import HelpTip from './HelpTip';
 import { useToast } from './NotificationContext';
 
-export default function FirewallLogs() {
+export default function FirewallLogs({ isLargeText, userRole }) {
   const [subTab, setSubTab] = useState('mikrotik'); // 'mikrotik' | 'audit'
   const [logs, setLogs] = useState([]);
   const [addressLists, setAddressLists] = useState([]);

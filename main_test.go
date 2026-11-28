@@ -1047,3 +1047,121 @@ func TestGatewayDetectionAndBackupExportImport(t *testing.T) {
 		t.Fatalf("backup import failed: %d %s", wImport.Code, wImport.Body.String())
 	}
 }
+
+func TestRoleBasedAccessControlAndFinance(t *testing.T) {
+	r, _ := setupTestEnv(t)
+
+	// Helper to login and get token for a user
+	loginAs := func(username, password, ip string) string {
+		w := doReq(r, "POST", "/api/v1/auth/login", map[string]string{
+			"username": username,
+			"password": password,
+		}, ip)
+		if w.Code != http.StatusOK {
+			t.Fatalf("login as %s failed: %d %s", username, w.Code, w.Body.String())
+		}
+		var res struct {
+			Token string `json:"token"`
+			Role  string `json:"role"`
+		}
+		_ = json.Unmarshal(w.Body.Bytes(), &res)
+		if res.Token == "" {
+			t.Fatalf("empty token for %s", username)
+		}
+		return res.Token
+	}
+
+	adminToken := loginAs("admin", "rois_admin", "192.168.100.10:1001")
+	nocToken := loginAs("noc", "noc_admin", "192.168.100.11:1002")
+	teknisiToken := loginAs("teknisi", "teknisi_admin", "192.168.100.12:1003")
+	bendaharaToken := loginAs("bendahara", "bendahara_admin", "192.168.100.13:1004")
+
+	// 1. NOC Role: All API Read or Read-Only!
+	// NOC can read tickets (GET)
+	reqNocGet, _ := http.NewRequest("GET", "/api/v1/tickets", nil)
+	reqNocGet.Header.Set("Authorization", "Bearer "+nocToken)
+	reqNocGet.RemoteAddr = "192.168.100.11:1002"
+	wNocGet := httptest.NewRecorder()
+	r.ServeHTTP(wNocGet, reqNocGet)
+	if wNocGet.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for NOC reading tickets, got %d %s", wNocGet.Code, wNocGet.Body.String())
+	}
+
+	// NOC MUST BE BLOCKED on POST /tickets (403 Forbidden - read-only)
+	ticketBody, _ := json.Marshal(map[string]string{
+		"title":    "FO Putus di Sanggrahan",
+		"priority": "P0",
+	})
+	reqNocPost, _ := http.NewRequest("POST", "/api/v1/tickets", bytes.NewBuffer(ticketBody))
+	reqNocPost.Header.Set("Authorization", "Bearer "+nocToken)
+	reqNocPost.Header.Set("Content-Type", "application/json")
+	reqNocPost.RemoteAddr = "192.168.100.11:1002"
+	wNocPost := httptest.NewRecorder()
+	r.ServeHTTP(wNocPost, reqNocPost)
+	if wNocPost.Code != http.StatusForbidden || !strings.Contains(wNocPost.Body.String(), "READ-ONLY") {
+		t.Fatalf("expected 403 Forbidden with READ-ONLY alert for NOC mutating tickets, got %d %s", wNocPost.Code, wNocPost.Body.String())
+	}
+
+	// 2. Teknisi Role: Can create tickets & handle PSB, but CANNOT access Invoices / Finance
+	reqTeknisiTicket, _ := http.NewRequest("POST", "/api/v1/tickets", bytes.NewBuffer(ticketBody))
+	reqTeknisiTicket.Header.Set("Authorization", "Bearer "+teknisiToken)
+	reqTeknisiTicket.Header.Set("Content-Type", "application/json")
+	reqTeknisiTicket.RemoteAddr = "192.168.100.12:1003"
+	wTeknisiTicket := httptest.NewRecorder()
+	r.ServeHTTP(wTeknisiTicket, reqTeknisiTicket)
+	if wTeknisiTicket.Code != http.StatusCreated && wTeknisiTicket.Code != http.StatusOK {
+		t.Fatalf("expected success for teknisi creating ticket, got %d %s", wTeknisiTicket.Code, wTeknisiTicket.Body.String())
+	}
+
+	// Teknisi trying to access /api/v1/invoices MUST BE BLOCKED (403 Forbidden)
+	reqTeknisiInvoice, _ := http.NewRequest("GET", "/api/v1/invoices", nil)
+	reqTeknisiInvoice.Header.Set("Authorization", "Bearer "+teknisiToken)
+	reqTeknisiInvoice.RemoteAddr = "192.168.100.12:1003"
+	wTeknisiInvoice := httptest.NewRecorder()
+	r.ServeHTTP(wTeknisiInvoice, reqTeknisiInvoice)
+	if wTeknisiInvoice.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 Forbidden for teknisi accessing invoices, got %d %s", wTeknisiInvoice.Code, wTeknisiInvoice.Body.String())
+	}
+
+	// 3. Bendahara Role: Can access Invoices & Finance Report, but CANNOT mutate tickets
+	reqBendaharaReport, _ := http.NewRequest("GET", "/api/v1/finance/report", nil)
+	reqBendaharaReport.Header.Set("Authorization", "Bearer "+bendaharaToken)
+	reqBendaharaReport.RemoteAddr = "192.168.100.13:1004"
+	wBendaharaReport := httptest.NewRecorder()
+	r.ServeHTTP(wBendaharaReport, reqBendaharaReport)
+	if wBendaharaReport.Code != http.StatusOK || !strings.Contains(wBendaharaReport.Body.String(), "total_ppn_11") {
+		t.Fatalf("expected 200 OK with PPN 11%% for bendahara finance report, got %d %s", wBendaharaReport.Code, wBendaharaReport.Body.String())
+	}
+
+	// Bendahara cannot create tickets
+	reqBendaharaTicket, _ := http.NewRequest("POST", "/api/v1/tickets", bytes.NewBuffer(ticketBody))
+	reqBendaharaTicket.Header.Set("Authorization", "Bearer "+bendaharaToken)
+	reqBendaharaTicket.Header.Set("Content-Type", "application/json")
+	reqBendaharaTicket.RemoteAddr = "192.168.100.13:1004"
+	wBendaharaTicket := httptest.NewRecorder()
+	r.ServeHTTP(wBendaharaTicket, reqBendaharaTicket)
+	if wBendaharaTicket.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 Forbidden for bendahara creating ticket, got %d %s", wBendaharaTicket.Code, wBendaharaTicket.Body.String())
+	}
+
+	// 4. Admin Role: User Management CRUD
+	// Admin gets user list
+	reqAdminUsers, _ := http.NewRequest("GET", "/api/v1/users", nil)
+	reqAdminUsers.Header.Set("Authorization", "Bearer "+adminToken)
+	reqAdminUsers.RemoteAddr = "192.168.100.10:1001"
+	wAdminUsers := httptest.NewRecorder()
+	r.ServeHTTP(wAdminUsers, reqAdminUsers)
+	if wAdminUsers.Code != http.StatusOK || !strings.Contains(wAdminUsers.Body.String(), "Super Administrator") {
+		t.Fatalf("expected 200 OK for admin viewing users, got %d %s", wAdminUsers.Code, wAdminUsers.Body.String())
+	}
+
+	// Non-admin (Bendahara) cannot access /api/v1/users
+	reqNonAdminUsers, _ := http.NewRequest("GET", "/api/v1/users", nil)
+	reqNonAdminUsers.Header.Set("Authorization", "Bearer "+bendaharaToken)
+	reqNonAdminUsers.RemoteAddr = "192.168.100.13:1004"
+	wNonAdminUsers := httptest.NewRecorder()
+	r.ServeHTTP(wNonAdminUsers, reqNonAdminUsers)
+	if wNonAdminUsers.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 Forbidden for non-admin accessing user management, got %d %s", wNonAdminUsers.Code, wNonAdminUsers.Body.String())
+	}
+}

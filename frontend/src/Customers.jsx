@@ -89,7 +89,7 @@ function MiniMapPicker({ lat, lng, nocCenter, onPick }) {
   return <div ref={containerRef} className="w-full h-44 rounded-xl border border-slate-700 overflow-hidden z-10" />;
 }
 
-export default function Customers({ onSwitchTab }) {
+export default function Customers({ onSwitchTab, isLargeText, userRole }) {
   const [customers, setCustomers] = useState([]);
   const [profiles, setProfiles] = useState(['10Mbps', '20Mbps', '50Mbps', '100Mbps', 'default']);
   const [nocCenter, setNocCenter] = useState({ lat: -8.130588, lng: 113.540639 });
@@ -382,17 +382,21 @@ export default function Customers({ onSwitchTab }) {
         </div>
 
         <div className="flex items-center gap-2.5 w-full md:w-auto">
-          <button
-            onClick={openAddModal}
-            className="px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white shadow-lg shadow-cyan-600/25 transition flex items-center justify-center gap-1.5"
-          >
-            <span>+</span>
-            <span>Tambah Pelanggan</span>
-          </button>
+          {userRole !== 'noc' && (
+            <button
+              onClick={openAddModal}
+              className={`px-4 rounded-xl font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white shadow-lg shadow-cyan-600/25 transition flex items-center justify-center gap-2 ${
+                isLargeText ? 'h-12 text-base' : 'py-2.5 text-xs sm:text-sm'
+              }`}
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>{userRole === 'teknisi' ? 'Laporan Pasang Baru (PSB)' : 'Tambah Pelanggan'}</span>
+            </button>
+          )}
           <HelpTip
-            title="Tambah Pelanggan Baru"
-            text="Menambahkan data pelanggan baru beserta titik koordinat GPS rumahnya, lalu membuatkan akun secret PPPoE di MikroTik secara otomatis."
-            tip="Profil paket diambil otomatis dari daftar PPP Profile RouterOS Anda."
+            title={userRole === 'teknisi' ? 'Laporan Pasang Baru (PSB)' : 'Tambah Pelanggan Baru'}
+            text="Menambahkan data pelanggan baru beserta titik koordinat GPS rumahnya untuk mapping teknisi dan konfigurasi PPPoE otomatis."
+            tip="Titik koordinat GPS rumah otomatis masuk ke peta topologi untuk navigasi tim lapangan."
           />
         </div>
       </div>

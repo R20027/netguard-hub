@@ -20,7 +20,7 @@ import { API } from './api';
 import HelpTip from './HelpTip';
 import { useToast } from './NotificationContext';
 
-export default function Tickets({ onSwitchTab }) {
+export default function Tickets({ onSwitchTab, mtStatus, isLargeText, userRole }) {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
@@ -188,26 +188,32 @@ export default function Tickets({ onSwitchTab }) {
               </button>
             )}
 
-            <button
-              onClick={handleDiagnose}
-              disabled={scanning}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 shadow-sm ${
-                scanning
-                  ? 'bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-700'
-                  : 'bg-cyan-600 hover:bg-cyan-500 text-white'
-              }`}
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${scanning ? 'animate-spin' : ''}`} />
-              <span>{scanning ? 'Audit Berjalan...' : 'Audit Router'}</span>
-            </button>
+            {userRole === 'admin' && (
+              <button
+                onClick={handleDiagnose}
+                disabled={scanning}
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 shadow-sm ${
+                  scanning
+                    ? 'bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-700'
+                    : 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                }`}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${scanning ? 'animate-spin' : ''}`} />
+                <span>{scanning ? 'Audit Berjalan...' : 'Audit Router'}</span>
+              </button>
+            )}
 
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center justify-center gap-1.5"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Tiket Manual</span>
-            </button>
+            {userRole !== 'noc' && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className={`px-3.5 rounded-xl font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center justify-center gap-1.5 ${
+                  isLargeText ? 'h-11 text-sm' : 'py-2 text-xs'
+                }`}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>{userRole === 'teknisi' ? 'Catat Gangguan Lapangan' : 'Tiket Manual'}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

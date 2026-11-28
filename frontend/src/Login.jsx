@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API, isGitHubPages } from './api';
-import { Shield, ShieldAlert, AlertCircle, Eye, EyeOff, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
+import { Shield, ShieldAlert, AlertCircle, Eye, EyeOff, Lock, User, ArrowRight, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export default function Login({ onLoginSuccess }) {
   const [username, setUsername] = useState('admin');
@@ -27,6 +27,12 @@ export default function Login({ onLoginSuccess }) {
     return () => clearInterval(timer);
   }, [lockoutSeconds]);
 
+  const selectRoleShortcut = (u, p) => {
+    setUsername(u);
+    setPassword(p);
+    setErrorMsg('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (lockoutSeconds > 0) return;
@@ -34,7 +40,7 @@ export default function Login({ onLoginSuccess }) {
     setLoading(true);
     setErrorMsg('');
 
-    const u = username.trim();
+    const u = username.trim().toLowerCase();
     const p = password.trim();
 
     try {
@@ -44,10 +50,17 @@ export default function Login({ onLoginSuccess }) {
       });
 
       if (res.data?.token) {
-        localStorage.setItem('guardhub_token', res.data.token);
-        localStorage.setItem('guardhub_user', res.data.username || u);
-        axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
-        onLoginSuccess(res.data.username || u);
+        const token = res.data.token;
+        const uname = res.data.username || u;
+        const role = res.data.role || 'admin';
+        const fullName = res.data.full_name || uname;
+
+        localStorage.setItem('guardhub_token', token);
+        localStorage.setItem('guardhub_user', uname);
+        localStorage.setItem('guardhub_role', role);
+        localStorage.setItem('guardhub_fullname', fullName);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        onLoginSuccess(uname, role, fullName);
         return;
       }
     } catch (err) {
@@ -59,16 +72,35 @@ export default function Login({ onLoginSuccess }) {
         return;
       }
 
-      // Jika pada GitHub Pages (tanpa server backend) atau koneksi backend terputus:
-      // Verifikasi langsung kredensial eksklusif admin: rois_admin
+      // Jika pada GitHub Pages (tanpa server backend) atau offline demo:
       const isOnlineStatic = isGitHubPages || !err.response || err.response?.status === 404 || err.code === 'ERR_NETWORK';
-      if (isOnlineStatic && u === 'admin' && p === 'rois_admin') {
-        const token = 'gh_' + Date.now();
-        localStorage.setItem('guardhub_token', token);
-        localStorage.setItem('guardhub_user', 'admin');
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        onLoginSuccess('admin');
-        return;
+      if (isOnlineStatic) {
+        let validRole = null;
+        let fullName = '';
+        if (u === 'admin' && p === 'rois_admin') {
+          validRole = 'admin';
+          fullName = 'Super Administrator (Rois)';
+        } else if (u === 'noc' && p === 'noc_admin') {
+          validRole = 'noc';
+          fullName = 'NOC Specialist (Monitoring)';
+        } else if (u === 'teknisi' && p === 'teknisi_admin') {
+          validRole = 'teknisi';
+          fullName = 'Teknisi Lapangan & PSB';
+        } else if (u === 'bendahara' && p === 'bendahara_admin') {
+          validRole = 'bendahara';
+          fullName = 'Bendahara & Billing Specialist';
+        }
+
+        if (validRole) {
+          const token = 'gh_' + Date.now();
+          localStorage.setItem('guardhub_token', token);
+          localStorage.setItem('guardhub_user', u);
+          localStorage.setItem('guardhub_role', validRole);
+          localStorage.setItem('guardhub_fullname', fullName);
+          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          onLoginSuccess(u, validRole, fullName);
+          return;
+        }
       }
 
       setErrorMsg(data?.error || 'Kombinasi pengguna dan kata sandi tidak valid.');
@@ -93,7 +125,7 @@ export default function Login({ onLoginSuccess }) {
             <span className="text-cyan-400">Hub</span>
           </h1>
           <p className="text-slate-400 text-xs font-mono">
-            ROUTEROS NOC &amp; SUBSCRIBER MANAGEMENT
+            ROUTEROS NOC &amp; ROLE-BASED ACCESS
           </p>
         </div>
 
@@ -101,7 +133,7 @@ export default function Login({ onLoginSuccess }) {
         <form onSubmit={handleSubmit} className="space-y-4 text-xs font-sans">
           <div>
             <label className="block text-slate-300 font-semibold mb-1.5 text-xs">
-              Akun Administrator
+              Nama Pengguna (Username)
             </label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
@@ -114,15 +146,15 @@ export default function Login({ onLoginSuccess }) {
                 disabled={lockoutSeconds > 0 || loading}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin"
-                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl pl-9 pr-3.5 py-2.5 text-sm text-white placeholder-slate-600 outline-none transition disabled:opacity-50"
+                placeholder="admin / noc / teknisi / bendahara"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl pl-9 pr-3.5 py-2.5 text-sm text-white placeholder-slate-600 outline-none transition disabled:opacity-50 font-mono"
               />
             </div>
           </div>
 
           <div>
             <label className="block text-slate-300 font-semibold mb-1.5 text-xs">
-              Kata Sandi
+              Kata Sandi (Password)
             </label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
@@ -135,8 +167,8 @@ export default function Login({ onLoginSuccess }) {
                 disabled={lockoutSeconds > 0 || loading}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Masukkan kata sandi admin"
-                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl pl-9 pr-10 py-2.5 text-sm text-white placeholder-slate-600 outline-none transition disabled:opacity-50"
+                placeholder="Masukkan kata sandi akun"
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl pl-9 pr-10 py-2.5 text-sm text-white placeholder-slate-600 outline-none transition disabled:opacity-50 font-mono"
               />
               <button
                 type="button"
@@ -182,7 +214,7 @@ export default function Login({ onLoginSuccess }) {
           <button
             type="submit"
             disabled={lockoutSeconds > 0 || loading}
-            className={`w-full py-2.5 rounded-xl font-semibold text-xs tracking-wide text-white transition flex items-center justify-center gap-2 ${
+            className={`w-full py-3 rounded-xl font-bold text-sm tracking-wide text-white transition flex items-center justify-center gap-2 ${
               lockoutSeconds > 0
                 ? 'bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed'
                 : 'bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 shadow-md shadow-cyan-950/50'
@@ -191,7 +223,7 @@ export default function Login({ onLoginSuccess }) {
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin text-white" />
-                <span>Memverifikasi Sesi...</span>
+                <span>Memverifikasi Akses...</span>
               </>
             ) : lockoutSeconds > 0 ? (
               <span>Sistem Ditangguhkan</span>
@@ -203,6 +235,54 @@ export default function Login({ onLoginSuccess }) {
             )}
           </button>
         </form>
+
+        {/* Petunjuk Cepat 4 Role (Sangat Ramah Pengguna & Lapangan) */}
+        <div className="border-t border-slate-800/80 pt-4 space-y-2">
+          <div className="flex items-center justify-between text-slate-400 text-[11px]">
+            <span className="font-semibold flex items-center gap-1 text-slate-300">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              Pilih Role Pengguna (Akses Cepat):
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-[11px]">
+            <button
+              type="button"
+              onClick={() => selectRoleShortcut('admin', 'rois_admin')}
+              className="p-2 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-rose-900/40 text-left transition"
+            >
+              <div className="font-bold text-rose-400">Admin</div>
+              <div className="text-[10px] text-slate-400">Semua menu &amp; router</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => selectRoleShortcut('noc', 'noc_admin')}
+              className="p-2 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-cyan-900/40 text-left transition"
+            >
+              <div className="font-bold text-cyan-400">NOC</div>
+              <div className="text-[10px] text-slate-400">Read-Only Monitoring</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => selectRoleShortcut('teknisi', 'teknisi_admin')}
+              className="p-2 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-emerald-900/40 text-left transition"
+            >
+              <div className="font-bold text-emerald-400">Teknisi</div>
+              <div className="text-[10px] text-slate-400">Mapping, PSB &amp; Tiket</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => selectRoleShortcut('bendahara', 'bendahara_admin')}
+              className="p-2 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-amber-900/40 text-left transition"
+            >
+              <div className="font-bold text-amber-400">Bendahara</div>
+              <div className="text-[10px] text-slate-400">Keuangan, Tagihan, PPN</div>
+            </button>
+          </div>
+        </div>
       </div>
 
       <footer className="mt-6 text-[11px] text-slate-500 font-mono text-center">

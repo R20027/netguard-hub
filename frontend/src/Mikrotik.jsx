@@ -27,7 +27,7 @@ import { API } from './api';
 import HelpTip from './HelpTip';
 import { useToast } from './NotificationContext';
 
-export default function Mikrotik({ onConnectedChange }) {
+export default function Mikrotik({ onConnectedChange, isLargeText, userRole }) {
   const [subTab, setSubTab] = useState('secrets'); // 'secrets' | 'active' | 'interfaces' | 'terminal' | 'config'
   const [config, setConfig] = useState({ host: '', port: '8728', user: 'admin', pass: '', tls: 'false' });
   const [testResult, setTestResult] = useState(null);

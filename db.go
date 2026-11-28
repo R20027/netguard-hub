@@ -78,6 +78,16 @@ func InitDBWithDSN(dsn string) {
 		last_ping DATETIME,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
+
+	CREATE TABLE IF NOT EXISTS users (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username TEXT UNIQUE NOT NULL,
+		password TEXT NOT NULL,
+		role TEXT NOT NULL, -- 'admin', 'noc', 'teknisi', 'bendahara'
+		full_name TEXT NOT NULL,
+		phone TEXT,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
 	`
 	if _, err := DB.Exec(query); err != nil {
 		log.Fatalf("Gagal bikin tabel: %v", err)
@@ -93,6 +103,9 @@ func InitDBWithDSN(dsn string) {
 
 	// Inisialisasi default monitored devices jika tabel masih benar-benar kosong
 	initDefaultDevices()
+
+	// Inisialisasi default users untuk 4 peran: Admin, NOC, Teknisi, Bendahara
+	initDefaultUsers()
 
 	// Inisialisasi default settings MikroTik & NOC jika belum ada (Presisi: Sanggrahan, Curahkalong, Bangsalsari, Jember)
 	initDefaultSetting("admin_user", "admin")
@@ -132,6 +145,36 @@ func initDefaultDevices() {
 		DB.Exec("INSERT INTO monitored_devices (id, name, ip, status, lat, lng) VALUES (?, ?, ?, ?, ?, ?)", "SW-BGS-01", "Switch Distribusi Bangsalsari", "192.168.88.2", "up", -8.1975, 113.5290)
 		DB.Exec("INSERT INTO monitored_devices (id, name, ip, status, lat, lng) VALUES (?, ?, ?, ?, ?, ?)", "ODP-BGS-01", "ODP Bangsal Pasar", "192.168.88.3", "up", -8.1950, 113.5270)
 		DB.Exec("INSERT INTO monitored_devices (id, name, ip, status, lat, lng) VALUES (?, ?, ?, ?, ?, ?)", "SRV-SGM-01", "Server PT Satelit Global Media", "192.168.88.10", "up", -8.1969, 113.5283)
+	}
+}
+
+func initDefaultUsers() {
+	// Pastikan 4 Role Akun Utama Selalu Tersedia
+	defaultUsers := []struct {
+		username string
+		password string
+		role     string
+		fullName string
+		phone    string
+	}{
+		{"admin", "rois_admin", "admin", "Super Administrator (Rois)", "081234567890"},
+		{"noc", "noc_admin", "noc", "NOC Monitoring Specialist", "081234567891"},
+		{"teknisi", "teknisi_admin", "teknisi", "Teknisi Lapangan & PSB", "081234567892"},
+		{"bendahara", "bendahara_admin", "bendahara", "Bendahara & Billing Specialist", "081234567893"},
+	}
+
+	for _, u := range defaultUsers {
+		var exists int
+		DB.QueryRow("SELECT COUNT(*) FROM users WHERE username = ?", u.username).Scan(&exists)
+		if exists == 0 {
+			_, _ = DB.Exec("INSERT INTO users (username, password, role, full_name, phone) VALUES (?, ?, ?, ?, ?)",
+				u.username, u.password, u.role, u.fullName, u.phone)
+		} else {
+			// Jika user admin, pastikan password tetap rois_admin
+			if u.username == "admin" {
+				_, _ = DB.Exec("UPDATE users SET password = ? WHERE username = 'admin'", u.password)
+			}
+		}
 	}
 }
 

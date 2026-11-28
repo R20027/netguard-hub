@@ -158,7 +158,7 @@ const MAP_STYLES = {
   },
 };
 
-export default function NocMap({ focusTarget, onClearFocusTarget }) {
+export default function NocMap({ focusTarget, onClearFocusTarget, isLargeText, userRole }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersLayerRef = useRef(null);

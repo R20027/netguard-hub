@@ -306,82 +306,91 @@ func setupRouter() *gin.Engine {
 		// Protected Routes (Wajib Login & Token Valid)
 		protected := api.Group("/", AuthMiddleware())
 		{
-			// Global Overview Stats & Quick Status
+			// Global Overview Stats & Quick Status (Semua Role dapat memantau)
 			protected.GET("/stats", GetSystemStats)
 			protected.GET("/mikrotik/status", GetMikrotikQuickStatus)
-			protected.POST("/mikrotik/diagnose", DiagnoseMikrotik)
+			protected.POST("/mikrotik/diagnose", RequireRole("admin"), DiagnoseMikrotik)
 
 			// NOC Problem Map Geolocation & Calibration
 			protected.GET("/map/points", GetMapPoints)
 			protected.GET("/map/noc-location", GetNocLocation)
-			protected.PUT("/map/noc-location", UpdateNocLocation)
+			protected.PUT("/map/noc-location", RequireRole("admin"), UpdateNocLocation)
 
 			// Monitored Infrastructure Devices (Switch / ODP / Tower / Server)
 			protected.GET("/devices", GetDevices)
-			protected.POST("/devices", CreateDevice)
-			protected.PATCH("/devices/:id", UpdateDevice)
-			protected.POST("/devices/:id/status", UpdateDeviceStatus)
-			protected.POST("/devices/ping-all", PingAllDevices)
-			protected.DELETE("/devices/:id", DeleteDevice)
+			protected.POST("/devices", RequireRole("admin"), CreateDevice)
+			protected.PATCH("/devices/:id", RequireRole("admin"), UpdateDevice)
+			protected.POST("/devices/:id/status", RequireRole("admin"), UpdateDeviceStatus)
+			protected.POST("/devices/ping-all", RequireRole("admin"), PingAllDevices)
+			protected.DELETE("/devices/:id", RequireRole("admin"), DeleteDevice)
 
-			// Tickets
-			protected.POST("/tickets", CreateTicket)
+			// Tickets (Admin & Teknisi kelola & perbaikan; NOC read-only)
 			protected.GET("/tickets", GetTickets)
-			protected.PATCH("/tickets/:id/status", UpdateTicketStatus)
-			protected.PATCH("/tickets/:id/location", UpdateTicketLocation)
-			protected.DELETE("/tickets/:id", DeleteTicket)
+			protected.POST("/tickets", RequireRole("admin", "teknisi"), CreateTicket)
+			protected.PATCH("/tickets/:id/status", RequireRole("admin", "teknisi"), UpdateTicketStatus)
+			protected.PATCH("/tickets/:id/location", RequireRole("admin", "teknisi"), UpdateTicketLocation)
+			protected.DELETE("/tickets/:id", RequireRole("admin"), DeleteTicket)
 
-			// Customers
-			protected.POST("/customers", CreateCustomer)
+			// Customers (Teknisi: laporan PSB, mapping GPS, test login PPPoE; Bendahara: isolir & restore; Admin: full)
 			protected.GET("/customers", GetCustomers)
-			protected.PATCH("/customers/:id", UpdateCustomer)
-			protected.PATCH("/customers/:id/location", UpdateCustomerLocation)
-			protected.POST("/customers/:id/isolate", IsolateCustomer)
-			protected.POST("/customers/:id/restore", RestoreCustomer)
-			protected.POST("/customers/:id/pppoe-login", SimulatePPPoE)
-			protected.POST("/customers/:id/kick", KickCustomer)
-			protected.POST("/customers/:id/sync-mikrotik", SyncCustomerToMikrotik)
-			protected.DELETE("/customers/:id", DeleteCustomer)
+			protected.POST("/customers", RequireRole("admin", "teknisi"), CreateCustomer)
+			protected.PATCH("/customers/:id", RequireRole("admin", "teknisi"), UpdateCustomer)
+			protected.PATCH("/customers/:id/location", RequireRole("admin", "teknisi"), UpdateCustomerLocation)
+			protected.POST("/customers/:id/isolate", RequireRole("admin", "bendahara"), IsolateCustomer)
+			protected.POST("/customers/:id/restore", RequireRole("admin", "bendahara"), RestoreCustomer)
+			protected.POST("/customers/:id/pppoe-login", RequireRole("admin", "teknisi"), SimulatePPPoE)
+			protected.POST("/customers/:id/kick", RequireRole("admin"), KickCustomer)
+			protected.POST("/customers/:id/sync-mikrotik", RequireRole("admin"), SyncCustomerToMikrotik)
+			protected.DELETE("/customers/:id", RequireRole("admin"), DeleteCustomer)
 
-			// Invoices & Auto-Isolir
-			protected.POST("/invoices", CreateInvoice)
-			protected.GET("/invoices", GetInvoices)
-			protected.PATCH("/invoices/:id/pay", PayInvoice)
-			protected.POST("/invoices/auto-isolir", TriggerAutoIsolir)
-			protected.POST("/invoices/sync-mikrotik", SyncInvoicesToMikrotik)
+			// Invoices & Auto-Isolir (Hanya Admin & Bendahara)
+			protected.GET("/invoices", RequireRole("admin", "bendahara"), GetInvoices)
+			protected.POST("/invoices", RequireRole("admin", "bendahara"), CreateInvoice)
+			protected.PATCH("/invoices/:id/pay", RequireRole("admin", "bendahara"), PayInvoice)
+			protected.POST("/invoices/auto-isolir", RequireRole("admin", "bendahara"), TriggerAutoIsolir)
+			protected.POST("/invoices/sync-mikrotik", RequireRole("admin", "bendahara"), SyncInvoicesToMikrotik)
 
-			// Firewall Logs & Live MikroTik Firewall
+			// Laporan Keuangan, Omset, & Pajak PPN 11% (Hanya Admin & Bendahara)
+			protected.GET("/finance/report", RequireRole("admin", "bendahara"), GetFinanceReport)
+
+			// Firewall Logs & Live MikroTik Firewall (NOC dapat membaca log firewall)
 			protected.GET("/firewall-logs", GetFirewallLogs)
-			protected.GET("/mikrotik/firewall/address-list", GetMikrotikFirewallAddressList)
-			protected.POST("/mikrotik/firewall/address-list", AddMikrotikFirewallAddressList)
-			protected.DELETE("/mikrotik/firewall/address-list/:id", DeleteMikrotikFirewallAddressList)
-			protected.GET("/mikrotik/firewall/filter", GetMikrotikFirewallFilters)
+			protected.GET("/mikrotik/firewall/address-list", RequireRole("admin"), GetMikrotikFirewallAddressList)
+			protected.POST("/mikrotik/firewall/address-list", RequireRole("admin"), AddMikrotikFirewallAddressList)
+			protected.DELETE("/mikrotik/firewall/address-list/:id", RequireRole("admin"), DeleteMikrotikFirewallAddressList)
+			protected.GET("/mikrotik/firewall/filter", RequireRole("admin"), GetMikrotikFirewallFilters)
 
-			// MikroTik Full-Access Manager
-			protected.GET("/mikrotik/config", GetMikrotikConfig)
-			protected.POST("/mikrotik/config", SaveMikrotikConfig)
-			protected.POST("/mikrotik/test", TestMikrotikConnection)
+			// MikroTik Full-Access Manager (Admin full access; NOC read-only resources, interfaces, active, logs)
+			protected.GET("/mikrotik/config", RequireRole("admin"), GetMikrotikConfig)
+			protected.POST("/mikrotik/config", RequireRole("admin"), SaveMikrotikConfig)
+			protected.POST("/mikrotik/test", RequireRole("admin"), TestMikrotikConnection)
 			protected.GET("/mikrotik/resources", GetMikrotikResources)
 			protected.GET("/mikrotik/interfaces", GetMikrotikInterfaces)
-			protected.GET("/mikrotik/profiles", GetMikrotikProfiles)
-			protected.GET("/mikrotik/secrets", GetMikrotikSecrets)
-			protected.POST("/mikrotik/secrets", CreateMikrotikSecret)
-			protected.PATCH("/mikrotik/secrets/:name", UpdateMikrotikSecret)
-			protected.DELETE("/mikrotik/secrets/:name", DeleteMikrotikSecret)
+			protected.GET("/mikrotik/profiles", RequireRole("admin"), GetMikrotikProfiles)
+			protected.GET("/mikrotik/secrets", RequireRole("admin"), GetMikrotikSecrets)
+			protected.POST("/mikrotik/secrets", RequireRole("admin"), CreateMikrotikSecret)
+			protected.PATCH("/mikrotik/secrets/:name", RequireRole("admin"), UpdateMikrotikSecret)
+			protected.DELETE("/mikrotik/secrets/:name", RequireRole("admin"), DeleteMikrotikSecret)
 			protected.GET("/mikrotik/active", GetMikrotikActive)
-			protected.POST("/mikrotik/kick", KickMikrotikActive)
-			protected.POST("/mikrotik/toggle-secret", ToggleMikrotikSecret)
-			protected.POST("/mikrotik/import-customers", ImportMikrotikCustomers)
-			protected.POST("/mikrotik/export-customers", ExportCustomersToMikrotik)
-			protected.POST("/mikrotik/exec", ExecMikrotikCommand)
+			protected.POST("/mikrotik/kick", RequireRole("admin"), KickMikrotikActive)
+			protected.POST("/mikrotik/toggle-secret", RequireRole("admin"), ToggleMikrotikSecret)
+			protected.POST("/mikrotik/import-customers", RequireRole("admin"), ImportMikrotikCustomers)
+			protected.POST("/mikrotik/export-customers", RequireRole("admin"), ExportCustomersToMikrotik)
+			protected.POST("/mikrotik/exec", RequireRole("admin"), ExecMikrotikCommand)
 			protected.GET("/mikrotik/logs", GetMikrotikLogs)
-			protected.POST("/mikrotik/setup-domain", SetupMikrotikDomain)
-			protected.GET("/mikrotik/detect-gateway", DetectMikrotikGatewayHandler)
+			protected.POST("/mikrotik/setup-domain", RequireRole("admin"), SetupMikrotikDomain)
+			protected.GET("/mikrotik/detect-gateway", RequireRole("admin"), DetectMikrotikGatewayHandler)
 
-			// Cloud & Database Backup
-			protected.GET("/backup/export", ExportBackupHandler)
-			protected.POST("/backup/import", ImportBackupHandler)
-			protected.GET("/backup/download-db", DownloadDatabaseHandler)
+			// Kelola Pengguna & Hak Akses Role (Hanya Admin)
+			protected.GET("/users", RequireRole("admin"), GetUsersHandler)
+			protected.POST("/users", RequireRole("admin"), CreateUserHandler)
+			protected.PATCH("/users/:id", RequireRole("admin"), UpdateUserHandler)
+			protected.DELETE("/users/:id", RequireRole("admin"), DeleteUserHandler)
+
+			// Cloud & Database Backup (Hanya Admin)
+			protected.GET("/backup/export", RequireRole("admin"), ExportBackupHandler)
+			protected.POST("/backup/import", RequireRole("admin"), ImportBackupHandler)
+			protected.GET("/backup/download-db", RequireRole("admin"), DownloadDatabaseHandler)
 		}
 	}
 
@@ -584,9 +593,16 @@ var loginLimiter = &LoginLimiter{
 	attempts: make(map[string]*clientAttempt),
 }
 
+type UserSession struct {
+	Username  string    `json:"username"`
+	Role      string    `json:"role"` // 'admin', 'noc', 'teknisi', 'bendahara'
+	FullName  string    `json:"full_name"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
 var (
-	tokenMu      sync.RWMutex
-	activeTokens = make(map[string]time.Time)
+	tokenMu        sync.RWMutex
+	activeSessions = make(map[string]UserSession)
 )
 
 func generateSecureToken() string {
@@ -609,23 +625,28 @@ func extractToken(c *gin.Context) string {
 	return ""
 }
 
-func isTokenValid(token string) bool {
+func getValidSession(token string) (bool, UserSession) {
 	if token == "" {
-		return false
+		return false, UserSession{}
 	}
 	tokenMu.RLock()
-	exp, exists := activeTokens[token]
+	sess, exists := activeSessions[token]
 	tokenMu.RUnlock()
 	if !exists {
-		return false
+		return false, UserSession{}
 	}
-	if time.Now().After(exp) {
+	if time.Now().After(sess.ExpiresAt) {
 		tokenMu.Lock()
-		delete(activeTokens, token)
+		delete(activeSessions, token)
 		tokenMu.Unlock()
-		return false
+		return false, UserSession{}
 	}
-	return true
+	return true, sess
+}
+
+func isTokenValid(token string) bool {
+	valid, _ := getValidSession(token)
+	return valid
 }
 
 func LoginHandler(c *gin.Context) {
@@ -660,10 +681,42 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 
-	savedUser := GetSetting("admin_user", "admin")
-	savedPass := GetSetting("admin_pass", "rois_admin")
+	reqUser := strings.TrimSpace(req.Username)
+	reqPass := strings.TrimSpace(req.Password)
 
-	if req.Username != savedUser || req.Password != savedPass {
+	// Cek kredensial ke database 'users' (Admin, NOC, Teknisi, Bendahara)
+	var dbUser struct {
+		ID       int
+		Username string
+		Password string
+		Role     string
+		FullName string
+	}
+
+	authenticated := false
+	var sessionRole, sessionFullName string
+
+	err := DB.QueryRow("SELECT id, username, password, role, full_name FROM users WHERE username = ?", reqUser).
+		Scan(&dbUser.ID, &dbUser.Username, &dbUser.Password, &dbUser.Role, &dbUser.FullName)
+
+	if err == nil {
+		if reqPass == dbUser.Password {
+			authenticated = true
+			sessionRole = dbUser.Role
+			sessionFullName = dbUser.FullName
+		}
+	} else {
+		// Fallback cek setting legacy untuk akun admin
+		savedUser := GetSetting("admin_user", "admin")
+		savedPass := GetSetting("admin_pass", "rois_admin")
+		if reqUser == savedUser && reqPass == savedPass {
+			authenticated = true
+			sessionRole = "admin"
+			sessionFullName = "Super Administrator (Rois)"
+		}
+	}
+
+	if !authenticated {
 		loginLimiter.mu.Lock()
 		att.failCount++
 		if att.failCount >= 3 {
@@ -715,27 +768,43 @@ func LoginHandler(c *gin.Context) {
 	loginLimiter.mu.Unlock()
 
 	token := generateSecureToken()
+	sess := UserSession{
+		Username:  reqUser,
+		Role:      sessionRole,
+		FullName:  sessionFullName,
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+	}
+
 	tokenMu.Lock()
-	activeTokens[token] = time.Now().Add(24 * time.Hour)
+	activeSessions[token] = sess
 	tokenMu.Unlock()
 
 	c.SetCookie("guardhub_token", token, 86400, "/", "", false, true)
 	c.JSON(http.StatusOK, gin.H{
-		"message":  "Login berhasil!",
-		"token":    token,
-		"username": savedUser,
+		"message":   "Login berhasil!",
+		"token":     token,
+		"username":  sess.Username,
+		"role":      sess.Role,
+		"full_name": sess.FullName,
 	})
 }
 
 func AuthCheckHandler(c *gin.Context) {
 	token := extractToken(c)
-	if token == "" || !isTokenValid(token) {
+	if token == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"authenticated": false})
+		return
+	}
+	valid, sess := getValidSession(token)
+	if !valid {
 		c.JSON(http.StatusUnauthorized, gin.H{"authenticated": false})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"authenticated": true,
-		"username":      GetSetting("admin_user", "admin"),
+		"username":      sess.Username,
+		"role":          sess.Role,
+		"full_name":     sess.FullName,
 	})
 }
 
@@ -743,7 +812,7 @@ func LogoutHandler(c *gin.Context) {
 	token := extractToken(c)
 	if token != "" {
 		tokenMu.Lock()
-		delete(activeTokens, token)
+		delete(activeSessions, token)
 		tokenMu.Unlock()
 	}
 	c.SetCookie("guardhub_token", "", -1, "/", "", false, true)
@@ -754,15 +823,93 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Jika gin mode test dan tidak ada auth header, izinkan untuk testing
 		if gin.Mode() == gin.TestMode && c.GetHeader("Authorization") == "" && c.GetHeader("X-Auth-Token") == "" {
+			c.Set("user_role", "admin")
+			c.Set("username", "admin")
+			c.Set("full_name", "Super Administrator (Rois)")
 			c.Next()
 			return
 		}
 		token := extractToken(c)
-		if token == "" || !isTokenValid(token) {
+		if token == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Autentikasi diperlukan. Silakan login terlebih dahulu."})
 			return
 		}
+		valid, sess := getValidSession(token)
+		if !valid {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Sesi autentikasi telah berakhir. Silakan login ulang."})
+			return
+		}
+		c.Set("user_token", token)
+		c.Set("username", sess.Username)
+		c.Set("user_role", sess.Role)
+		c.Set("full_name", sess.FullName)
 		c.Next()
+	}
+}
+
+// RequireRole memeriksa hak akses berdasarkan role pengguna
+// ROLE DEFINITION:
+// - admin: Memiliki akses penuh ke seluruh menu & konfigurasi
+// - noc: Bersifat READ-ONLY (all API read or read-only). Dilarang keras melakukan POST/PUT/PATCH/DELETE
+// - teknisi: Mapping pelanggan, laporan PSB (pasang baru), perbaikan & tiket gangguan lapangan, pppoe-login
+// - bendahara: Laporan keuangan, invoice pembayaran, pajak PPN 11%, isolir tagihan
+func RequireRole(allowedRoles ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		roleVal, exists := c.Get("user_role")
+		if !exists {
+			if gin.Mode() == gin.TestMode {
+				c.Next()
+				return
+			}
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Role pengguna tidak terdefinisi"})
+			return
+		}
+		role := roleVal.(string)
+
+		// 1. Super Admin selalu punya izin penuh ke semua rute
+		if role == "admin" {
+			c.Next()
+			return
+		}
+
+		// 2. Role NOC = all API read or read-only
+		// Jika NOC mencoba melakukan request modifikasi data (POST/PUT/PATCH/DELETE), wajib DITOLAK (403)
+		if role == "noc" {
+			if c.Request.Method != "GET" && c.Request.Method != "HEAD" && c.Request.Method != "OPTIONS" {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+					"error":     "Hak akses role 'noc' bersifat READ-ONLY (Monitoring). Anda tidak memiliki izin untuk memanipulasi atau mengubah data sistem.",
+					"role":      "noc",
+					"read_only": true,
+				})
+				return
+			}
+			// Semua endpoint GET diizinkan untuk NOC
+			c.Next()
+			return
+		}
+
+		// 3. Untuk Teknisi & Bendahara, cek apakah role terdaftar di allowedRoles
+		for _, allowed := range allowedRoles {
+			if allowed == role || allowed == "*" {
+				c.Next()
+				return
+			}
+		}
+
+		var roleMsg string
+		switch role {
+		case "teknisi":
+			roleMsg = "Role 'teknisi' difokuskan untuk mapping pelanggan, laporan pasang baru (PSB), dan perbaikan gangguan lapangan."
+		case "bendahara":
+			roleMsg = "Role 'bendahara' difokuskan untuk laporan keuangan, tagihan pelanggan, dan pajak PPN."
+		default:
+			roleMsg = fmt.Sprintf("Role '%s' tidak memiliki wewenang untuk fitur ini.", role)
+		}
+
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"error":     fmt.Sprintf("Akses ditolak: %s", roleMsg),
+			"user_role": role,
+		})
 	}
 }
 
@@ -3494,4 +3641,231 @@ func DownloadDatabaseHandler(c *gin.Context) {
 	}
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=netguard_backup_%s.db", time.Now().Format("20060102_150405")))
 	c.File(dbPath)
+}
+
+// ==================== FINANCE & TAX (PPN 11%) REPORT ====================
+
+func GetFinanceReport(c *gin.Context) {
+	var totalInvoices, paidCount, unpaidCount, overdueCount int
+	var totalGrossRevenue, totalUnpaidAmount, totalOverdueAmount int64
+
+	_ = DB.QueryRow("SELECT COUNT(*) FROM invoices").Scan(&totalInvoices)
+	_ = DB.QueryRow("SELECT COUNT(*), COALESCE(SUM(amount), 0) FROM invoices WHERE status = 'paid'").Scan(&paidCount, &totalGrossRevenue)
+	_ = DB.QueryRow("SELECT COUNT(*), COALESCE(SUM(amount), 0) FROM invoices WHERE status = 'unpaid'").Scan(&unpaidCount, &totalUnpaidAmount)
+	_ = DB.QueryRow("SELECT COUNT(*), COALESCE(SUM(amount), 0) FROM invoices WHERE status = 'overdue'").Scan(&overdueCount, &totalOverdueAmount)
+
+	// Pajak PPN 11% dari omset terbayar
+	ppnRate := 0.11
+	totalPajakPPN := int64(math.Round(float64(totalGrossRevenue) * ppnRate))
+	netOmset := totalGrossRevenue - totalPajakPPN
+
+	// Omset Bulan Ini (current month YYYY-MM)
+	currentPeriod := time.Now().Format("2006-01")
+	var currentMonthRevenue int64
+	var currentMonthPaidCount int
+	_ = DB.QueryRow("SELECT COUNT(*), COALESCE(SUM(amount), 0) FROM invoices WHERE status = 'paid' AND period = ?", currentPeriod).
+		Scan(&currentMonthPaidCount, &currentMonthRevenue)
+
+	currentMonthPPN := int64(math.Round(float64(currentMonthRevenue) * ppnRate))
+	currentMonthNet := currentMonthRevenue - currentMonthPPN
+
+	// Distribusi Paket Langganan
+	type PackageSummary struct {
+		Package string `json:"package"`
+		Count   int    `json:"count"`
+		Revenue int64  `json:"revenue"`
+	}
+	pkgRows, err := DB.Query(`
+		SELECT COALESCE(c.package, 'Standar') AS pkg, COUNT(c.id), COALESCE(SUM(i.amount), 0)
+		FROM customers c
+		LEFT JOIN invoices i ON c.id = i.customer_id AND i.status = 'paid'
+		GROUP BY c.package
+	`)
+	var packageStats []PackageSummary
+	if err == nil {
+		defer pkgRows.Close()
+		for pkgRows.Next() {
+			var ps PackageSummary
+			if err := pkgRows.Scan(&ps.Package, &ps.Count, &ps.Revenue); err == nil {
+				packageStats = append(packageStats, ps)
+			}
+		}
+	}
+
+	// 10 Transaksi Pembayaran Terakhir
+	type RecentPayment struct {
+		InvoiceID    int    `json:"invoice_id"`
+		CustomerName string `json:"customer_name"`
+		PPPoEUser    string `json:"pppoe_user"`
+		Period       string `json:"period"`
+		Amount       int    `json:"amount"`
+		PaidAt       string `json:"paid_at"`
+	}
+	recentRows, err := DB.Query(`
+		SELECT i.id, COALESCE(c.name, 'Pelanggan'), COALESCE(c.pppoe_user, '-'), i.period, i.amount, COALESCE(i.paid_at, i.created_at)
+		FROM invoices i
+		LEFT JOIN customers c ON i.customer_id = c.id
+		WHERE i.status = 'paid'
+		ORDER BY i.paid_at DESC, i.id DESC
+		LIMIT 10
+	`)
+	var recentPayments []RecentPayment
+	if err == nil {
+		defer recentRows.Close()
+		for recentRows.Next() {
+			var rp RecentPayment
+			if err := recentRows.Scan(&rp.InvoiceID, &rp.CustomerName, &rp.PPPoEUser, &rp.Period, &rp.Amount, &rp.PaidAt); err == nil {
+				recentPayments = append(recentPayments, rp)
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"current_period":           currentPeriod,
+		"total_invoices":           totalInvoices,
+		"paid_invoices":            paidCount,
+		"unpaid_invoices":          unpaidCount,
+		"overdue_invoices":         overdueCount,
+		"total_gross_revenue":      totalGrossRevenue,
+		"total_ppn_11":             totalPajakPPN,
+		"total_net_revenue":        netOmset,
+		"current_month_gross":      currentMonthRevenue,
+		"current_month_ppn":        currentMonthPPN,
+		"current_month_net":        currentMonthNet,
+		"current_month_paid_count": currentMonthPaidCount,
+		"total_unpaid_amount":      totalUnpaidAmount,
+		"total_overdue_amount":     totalOverdueAmount,
+		"package_stats":            packageStats,
+		"recent_payments":          recentPayments,
+	})
+}
+
+// ==================== USER & ROLE MANAGEMENT ====================
+
+type UserResponse struct {
+	ID        int    `json:"id"`
+	Username  string `json:"username"`
+	Role      string `json:"role"`
+	FullName  string `json:"full_name"`
+	Phone     string `json:"phone"`
+	CreatedAt string `json:"created_at"`
+}
+
+func GetUsersHandler(c *gin.Context) {
+	rows, err := DB.Query("SELECT id, username, role, full_name, COALESCE(phone, ''), created_at FROM users ORDER BY id ASC")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data user: " + err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	var users []UserResponse
+	for rows.Next() {
+		var u UserResponse
+		if err := rows.Scan(&u.ID, &u.Username, &u.Role, &u.FullName, &u.Phone, &u.CreatedAt); err == nil {
+			users = append(users, u)
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"data": users})
+}
+
+func CreateUserHandler(c *gin.Context) {
+	var req struct {
+		Username string `json:"username" binding:"required"`
+		Password string `json:"password" binding:"required"`
+		Role     string `json:"role" binding:"required"`
+		FullName string `json:"full_name" binding:"required"`
+		Phone    string `json:"phone"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Semua bidang wajib diisi: username, password, role, full_name"})
+		return
+	}
+	req.Username = strings.TrimSpace(strings.ToLower(req.Username))
+	req.Role = strings.TrimSpace(strings.ToLower(req.Role))
+	if req.Role != "admin" && req.Role != "noc" && req.Role != "teknisi" && req.Role != "bendahara" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Role harus salah satu dari: admin, noc, teknisi, bendahara"})
+		return
+	}
+
+	res, err := DB.Exec("INSERT INTO users (username, password, role, full_name, phone) VALUES (?, ?, ?, ?, ?)",
+		req.Username, req.Password, req.Role, req.FullName, req.Phone)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username sudah terdaftar atau tidak valid: " + err.Error()})
+		return
+	}
+	id, _ := res.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{
+		"message":   "Pengguna baru berhasil ditambahkan",
+		"id":        id,
+		"username":  req.Username,
+		"role":      req.Role,
+		"full_name": req.FullName,
+	})
+}
+
+func UpdateUserHandler(c *gin.Context) {
+	id := c.Param("id")
+	var req struct {
+		Password string `json:"password"`
+		Role     string `json:"role"`
+		FullName string `json:"full_name"`
+		Phone    string `json:"phone"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Data update tidak valid"})
+		return
+	}
+
+	var username string
+	err := DB.QueryRow("SELECT username FROM users WHERE id = ?", id).Scan(&username)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
+		return
+	}
+
+	if req.Password != "" {
+		_, _ = DB.Exec("UPDATE users SET password = ? WHERE id = ?", req.Password, id)
+		if username == "admin" {
+			SetSetting("admin_pass", req.Password)
+		}
+	}
+	if req.FullName != "" {
+		_, _ = DB.Exec("UPDATE users SET full_name = ? WHERE id = ?", req.FullName, id)
+	}
+	if req.Phone != "" {
+		_, _ = DB.Exec("UPDATE users SET phone = ? WHERE id = ?", req.Phone, id)
+	}
+	if req.Role != "" {
+		req.Role = strings.TrimSpace(strings.ToLower(req.Role))
+		if req.Role == "admin" || req.Role == "noc" || req.Role == "teknisi" || req.Role == "bendahara" {
+			if username == "admin" && req.Role != "admin" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Akun admin utama tidak boleh diubah rolenya"})
+				return
+			}
+			_, _ = DB.Exec("UPDATE users SET role = ? WHERE id = ?", req.Role, id)
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Data pengguna berhasil diperbarui"})
+}
+
+func DeleteUserHandler(c *gin.Context) {
+	id := c.Param("id")
+	var username string
+	err := DB.QueryRow("SELECT username FROM users WHERE id = ?", id).Scan(&username)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
+		return
+	}
+	if username == "admin" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Akun admin utama tidak dapat dihapus!"})
+		return
+	}
+	_, err = DB.Exec("DELETE FROM users WHERE id = ?", id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus pengguna: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Pengguna " + username + " berhasil dihapus"})
 }
