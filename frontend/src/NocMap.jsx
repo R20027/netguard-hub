@@ -1077,9 +1077,9 @@ export default function NocMap({ focusTarget, onClearFocusTarget, isLargeText, u
         style={{ backgroundColor: (MAP_STYLES[mapStyle] || MAP_STYLES.voyager).bg }}
       >
         {/* FLOATING TOP SEARCH & FILTER BAR */}
-        <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-2 max-w-xl">
+        <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-2 max-w-xl animate-fade-in-down">
           {/* Search Box */}
-          <form onSubmit={handleSearchLocation} className="flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800 shadow-2xl">
+          <form onSubmit={handleSearchLocation} className="flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800 shadow-2xl transition-all focus-within:border-cyan-500 focus-within:ring-1 focus-within:ring-cyan-500/50">
             <input
               type="text"
               value={searchQuery}
@@ -1090,7 +1090,7 @@ export default function NocMap({ focusTarget, onClearFocusTarget, isLargeText, u
             <button
               type="submit"
               disabled={searchingLoc}
-              className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow transition shrink-0"
+              className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow transition shrink-0 btn-interactive"
             >
               {searchingLoc ? '...' : 'Cari'}
             </button>
@@ -1100,26 +1100,26 @@ export default function NocMap({ focusTarget, onClearFocusTarget, isLargeText, u
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar bg-slate-950/85 backdrop-blur-md p-1 rounded-xl border border-slate-800 shadow-xl text-xs font-semibold whitespace-nowrap">
             <button
               onClick={() => setFilterType('all')}
-              className={`px-2.5 py-1 rounded-lg transition ${filterType === 'all' ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+              className={`px-2.5 py-1 rounded-lg transition btn-interactive ${filterType === 'all' ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
             >
               Semua ({points.length})
             </button>
             <button
               onClick={() => setFilterType('problem')}
-              className={`px-2.5 py-1 rounded-lg transition flex items-center gap-1 ${filterType === 'problem' ? 'bg-rose-600 text-white shadow' : 'text-rose-400 hover:text-rose-300'}`}
+              className={`px-2.5 py-1 rounded-lg transition btn-interactive flex items-center gap-1 ${filterType === 'problem' ? 'bg-rose-600 text-white shadow' : 'text-rose-400 hover:text-rose-300'}`}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping"></span>
               Gangguan ({problemPoints.length})
             </button>
             <button
               onClick={() => setFilterType('device')}
-              className={`px-2.5 py-1 rounded-lg transition ${filterType === 'device' ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+              className={`px-2.5 py-1 rounded-lg transition btn-interactive ${filterType === 'device' ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
             >
               Node ({deviceCount})
             </button>
             <button
               onClick={() => setFilterType('customer')}
-              className={`px-2.5 py-1 rounded-lg transition ${filterType === 'customer' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+              className={`px-2.5 py-1 rounded-lg transition btn-interactive ${filterType === 'customer' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
             >
               Pelanggan ({customerCount})
             </button>
@@ -1129,7 +1129,7 @@ export default function NocMap({ focusTarget, onClearFocusTarget, isLargeText, u
             {/* Layer Switch (Jalan vs Satelit vs Dark) */}
             <button
               onClick={() => setMapStyle(mapStyle === 'satellite' ? 'voyager' : 'satellite')}
-              className="px-2 py-1 rounded-lg text-amber-300 hover:text-white bg-slate-900 border border-slate-700 text-[11px]"
+              className="px-2 py-1 rounded-lg text-amber-300 hover:text-white bg-slate-900 border border-slate-700 text-[11px] btn-interactive hover:scale-105"
               title="Beralih antara peta jalan dan citra satelit"
             >
               {mapStyle === 'satellite' ? '🗺️ Peta Jalan' : '🛰️ Satelit'}
@@ -1144,8 +1144,8 @@ export default function NocMap({ focusTarget, onClearFocusTarget, isLargeText, u
             type="button"
             onClick={() => setShowTopology((v) => !v)}
             title={`Garis Topologi Jalur Jaringan (${showTopology ? 'Aktif' : 'Nonaktif'})`}
-            className={`w-10 h-10 rounded-full border shadow-xl flex items-center justify-center text-sm transition transform active:scale-95 ${
-              showTopology ? 'bg-cyan-600 text-white border-cyan-400' : 'bg-slate-900/90 text-slate-400 border-slate-700'
+            className={`w-10 h-10 rounded-full border shadow-xl flex items-center justify-center text-sm btn-interactive hover:scale-110 active:scale-90 ${
+              showTopology ? 'bg-cyan-600 text-white border-cyan-400 shadow-cyan-500/20' : 'bg-slate-900/90 text-slate-400 border-slate-700 hover:text-white'
             }`}
           >
             🔗
@@ -1156,7 +1156,7 @@ export default function NocMap({ focusTarget, onClearFocusTarget, isLargeText, u
             type="button"
             onClick={handleSyncToPTSatellite}
             title="Pusatkan ke Kantor PT Satelit Global Media (Sanggrahan Bangsalsari)"
-            className="w-10 h-10 rounded-full bg-slate-900/95 hover:bg-slate-800 text-cyan-400 border border-cyan-700/80 shadow-xl flex items-center justify-center text-sm transition transform active:scale-95"
+            className="w-10 h-10 rounded-full bg-slate-900/95 hover:bg-slate-800 text-cyan-400 hover:text-cyan-300 border border-cyan-700/80 shadow-xl flex items-center justify-center text-sm btn-interactive hover:scale-110 active:scale-90"
           >
             🏢
           </button>
@@ -1167,7 +1167,7 @@ export default function NocMap({ focusTarget, onClearFocusTarget, isLargeText, u
             onClick={() => detectUserLocation(true)}
             disabled={locatingUser}
             title="Pusatkan ke Posisi GPS Saya (Live Blue Dot)"
-            className="w-12 h-12 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white border-2 border-cyan-300 shadow-2xl flex items-center justify-center text-lg transition transform active:scale-90"
+            className="w-12 h-12 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white border-2 border-cyan-300 shadow-2xl flex items-center justify-center text-lg btn-interactive hover:scale-110 active:scale-90 shadow-cyan-600/30"
           >
             {locatingUser ? (
               <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
@@ -1178,7 +1178,7 @@ export default function NocMap({ focusTarget, onClearFocusTarget, isLargeText, u
         </div>
 
         {/* FLOATING BOTTOM LEFT STATS CHIP */}
-        <div className="absolute bottom-4 left-4 z-[1000] hidden sm:flex items-center gap-2 bg-slate-950/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 shadow-xl text-[11px] text-slate-300 font-mono">
+        <div className="absolute bottom-4 left-4 z-[1000] hidden sm:flex items-center gap-2 bg-slate-950/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 shadow-xl text-[11px] text-slate-300 font-mono animate-fade-in-up">
           <span className="text-rose-400 font-bold">{problemPoints.length} Gangguan</span>
           <span>&bull;</span>
           <span className="text-cyan-400 font-bold">{deviceCount} Node</span>

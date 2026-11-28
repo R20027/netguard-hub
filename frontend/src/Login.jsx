@@ -121,11 +121,11 @@ export default function Login({ onLoginSuccess }) {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 selection:bg-cyan-500 selection:text-black">
-      <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-7 shadow-xl relative z-10 space-y-5">
+      <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-7 shadow-2xl relative z-10 space-y-5 animate-scale-in">
         {/* Header Logo & Simple Switch Theme */}
         <div className="flex justify-between items-center pb-2 border-b border-slate-800">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700/80 flex items-center justify-center text-cyan-500">
+            <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700/80 flex items-center justify-center text-cyan-500 animate-pulse-glow">
               <Shield className="w-4 h-4 text-cyan-500" />
             </div>
             <div>
@@ -139,13 +139,13 @@ export default function Login({ onLoginSuccess }) {
           <button
             type="button"
             onClick={toggleTheme}
-            className="p-1.5 rounded-lg border border-slate-700/80 bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition text-xs flex items-center gap-1"
+            className="p-1.5 rounded-lg border border-slate-700/80 bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition text-xs flex items-center gap-1 btn-interactive hover:scale-105 active:scale-90"
             title={theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'}
           >
             {theme === 'dark' ? (
-              <Sun className="w-3.5 h-3.5 text-amber-400" />
+              <Sun className="w-3.5 h-3.5 text-amber-400 transition-transform duration-300 hover:rotate-90" />
             ) : (
-              <Moon className="w-3.5 h-3.5 text-slate-600" />
+              <Moon className="w-3.5 h-3.5 text-slate-600 transition-transform duration-300 hover:-rotate-12" />
             )}
           </button>
         </div>
@@ -211,7 +211,7 @@ export default function Login({ onLoginSuccess }) {
           {/* Pesan Kesalahan */}
           {errorMsg && (
             <div
-              className={`p-2.5 rounded-xl border text-xs leading-relaxed flex items-start gap-2 ${
+              className={`p-2.5 rounded-xl border text-xs leading-relaxed flex items-start gap-2 animate-fade-in-down ${
                 lockoutSeconds > 0
                   ? 'bg-rose-950/70 border-rose-800 text-rose-200'
                   : 'bg-amber-950/70 border-amber-800 text-amber-200'
@@ -237,10 +237,10 @@ export default function Login({ onLoginSuccess }) {
           <button
             type="submit"
             disabled={lockoutSeconds > 0 || loading}
-            className={`w-full py-2.5 rounded-xl font-bold text-xs tracking-wide text-white transition flex items-center justify-center gap-1.5 ${
+            className={`w-full py-2.5 rounded-xl font-bold text-xs tracking-wide text-white transition flex items-center justify-center gap-1.5 btn-interactive ${
               lockoutSeconds > 0
                 ? 'bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed'
-                : 'bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 shadow-sm'
+                : 'bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 shadow-sm hover:scale-[1.01]'
             }`}
           >
             {loading ? (

@@ -419,17 +419,17 @@ function App() {
             <button
               type="button"
               onClick={toggleTheme}
-              className="p-1.5 sm:px-2.5 sm:py-1 rounded-xl font-semibold flex items-center gap-1.5 transition text-xs border border-slate-700/80 bg-slate-800/80 hover:bg-slate-700 text-slate-200"
+              className="p-1.5 sm:px-2.5 sm:py-1 rounded-xl font-semibold flex items-center gap-1.5 text-xs border border-slate-700/80 bg-slate-800/80 hover:bg-slate-700 text-slate-200 btn-interactive hover:scale-105 active:scale-90"
               title={theme === 'dark' ? 'Ubah ke Mode Terang' : 'Ubah ke Mode Gelap'}
             >
               {theme === 'dark' ? (
                 <>
-                  <Sun className="w-3.5 h-3.5 text-amber-400" />
+                  <Sun className="w-3.5 h-3.5 text-amber-400 transition-transform duration-300 hover:rotate-90" />
                   <span className="hidden sm:inline text-xs">Terang</span>
                 </>
               ) : (
                 <>
-                  <Moon className="w-3.5 h-3.5 text-slate-600" />
+                  <Moon className="w-3.5 h-3.5 text-slate-600 transition-transform duration-300 hover:-rotate-12" />
                   <span className="hidden sm:inline text-xs">Gelap</span>
                 </>
               )}
@@ -439,7 +439,7 @@ function App() {
             <button
               type="button"
               onClick={toggleLargeText}
-              className={`p-1.5 sm:px-2.5 sm:py-1 rounded-xl font-bold flex items-center gap-1.5 transition text-xs border ${
+              className={`p-1.5 sm:px-2.5 sm:py-1 rounded-xl font-bold flex items-center gap-1.5 text-xs border btn-interactive hover:scale-105 active:scale-90 ${
                 isLargeText
                   ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm'
                   : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700/80'
@@ -456,7 +456,7 @@ function App() {
             <button
               type="button"
               onClick={handleLogout}
-              className="p-1.5 sm:px-2.5 sm:py-1 rounded-xl font-semibold bg-rose-950/60 hover:bg-rose-900 border border-rose-800/60 text-rose-200 transition text-xs flex items-center gap-1"
+              className="p-1.5 sm:px-2.5 sm:py-1 rounded-xl font-semibold bg-rose-950/60 hover:bg-rose-900 border border-rose-800/60 text-rose-200 text-xs flex items-center gap-1 btn-interactive hover:scale-105 active:scale-90"
               title="Keluar dari sesi saat ini"
             >
               <LogOut className="w-3.5 h-3.5 text-rose-400" />
@@ -479,14 +479,14 @@ function App() {
                     <button
                       key={r.id}
                       onClick={() => handleRoleChange(r.id)}
-                      className={`flex-1 sm:flex-initial px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                      className={`flex-1 sm:flex-initial px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 btn-interactive ${
                         active
-                          ? 'bg-cyan-600 text-white shadow-sm'
+                          ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30 scale-[1.02] ring-1 ring-cyan-400/40'
                           : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                       }`}
                       title={`${r.label}: ${r.desc}`}
                     >
-                      <span className="text-xs">{r.icon}</span>
+                      <span className="text-xs transition-transform duration-200">{r.icon}</span>
                       <span>{r.label}</span>
                     </button>
                   );
@@ -496,7 +496,10 @@ function App() {
 
             {/* Role Info badge */}
             <div className="hidden sm:flex items-center gap-2 text-[11px] font-mono text-slate-400">
-              <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+              </span>
               <span>Aktif: <strong className="text-cyan-300 font-bold uppercase">{userRole}</strong> ({ROLES.find(r => r.id === userRole)?.desc})</span>
             </div>
           </div>
@@ -512,16 +515,16 @@ function App() {
                 <button
                   key={t.id}
                   onClick={() => setTab(t.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition whitespace-nowrap ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap btn-interactive ${
                     active
-                      ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-sm'
+                      ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-sm scale-[1.01]'
                       : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
                   }`}
                 >
-                  <TabIcon className={`w-3.5 h-3.5 ${active ? 'text-cyan-400' : 'text-slate-400'}`} />
+                  <TabIcon className={`w-3.5 h-3.5 transition-transform duration-200 ${active ? 'text-cyan-400 scale-110' : 'text-slate-400'}`} />
                   <span>{t.label}</span>
                   {t.badge && (
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold text-white ${t.badgeColor || 'bg-rose-500'}`}>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold text-white animate-pulse ${t.badgeColor || 'bg-rose-500'}`}>
                       {t.badge}
                     </span>
                   )}
@@ -539,7 +542,10 @@ function App() {
           <div className="flex items-center gap-2">
             {mtStatus?.connected ? (
               <div className="flex items-center gap-1.5 bg-emerald-950/40 border border-emerald-800/60 px-2 py-0.5 rounded-lg text-emerald-300 text-[11px] font-mono">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
                 <span>{mtStatus.identity || 'RouterOS'} Online</span>
                 <span className="text-emerald-500/50">({mtStatus.latency_ms}ms)</span>
               </div>
@@ -562,15 +568,15 @@ function App() {
             <div className="flex items-center gap-2 text-slate-400 text-xs font-mono">
               <span>{stats.active_customers} Pelanggan Aktif</span>
               {stats.unpaid_invoices > 0 && (
-                <span className="text-amber-400">&bull; {stats.unpaid_invoices} Tagihan Pending</span>
+                <span className="text-amber-400 animate-pulse">&bull; {stats.unpaid_invoices} Tagihan Pending</span>
               )}
             </div>
           )}
         </div>
       </section>
 
-      {/* MAIN VIEW CONTENT */}
-      <main className="max-w-7xl mx-auto w-full px-3 sm:px-6 py-4 sm:py-6 pb-24 md:pb-6 flex-1">
+      {/* MAIN VIEW CONTENT (WITH SMOOTH FLUID TRANSITION ON TAB/ROLE CHANGE) */}
+      <main key={`${tab}-${userRole}`} className="max-w-7xl mx-auto w-full px-3 sm:px-6 py-4 sm:py-6 pb-24 md:pb-6 flex-1 animate-fade-in-up">
         {tab === 'tickets' && <Tickets onSwitchTab={handleSwitchTab} mtStatus={mtStatus} isLargeText={isLargeText} userRole={userRole} />}
         {tab === 'map' && <NocMap focusTarget={mapFocusTarget} onClearFocusTarget={() => setMapFocusTarget(null)} isLargeText={isLargeText} userRole={userRole} />}
         {tab === 'customers' && <Customers onSwitchTab={handleSwitchTab} isLargeText={isLargeText} userRole={userRole} />}
@@ -590,18 +596,18 @@ function App() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex flex-col items-center justify-center flex-1 py-1.5 px-1 rounded-xl transition relative ${
-                active ? 'text-cyan-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`flex flex-col items-center justify-center flex-1 py-1.5 px-1 rounded-xl btn-interactive relative ${
+                active ? 'text-cyan-400 font-bold -translate-y-0.5' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               <div className="relative">
-                <TabIcon className="w-5 h-5" />
+                <TabIcon className={`w-5 h-5 transition-transform duration-200 ${active ? 'scale-110' : ''}`} />
                 {t.badge && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500"></span>
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
                 )}
               </div>
               <span className="text-[10px] mt-0.5 tracking-tight font-medium truncate max-w-[65px]">{t.shortLabel}</span>
-              {active && <span className="w-1 h-1 rounded-full bg-cyan-400 mt-0.5"></span>}
+              {active && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-0.5 shadow-sm shadow-cyan-400"></span>}
             </button>
           );
         })}

@@ -220,7 +220,7 @@ export default function Tickets({ onSwitchTab, mtStatus, isLargeText, userRole }
 
       {/* KPI STAT CARDS */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between card-interactive">
           <span className="text-slate-400 text-xs font-medium">Tiket Terbuka</span>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-2xl sm:text-3xl font-black text-white">{totalOpen}</span>
@@ -230,9 +230,9 @@ export default function Tickets({ onSwitchTab, mtStatus, isLargeText, userRole }
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-rose-900/40 rounded-xl p-4 flex flex-col justify-between">
+        <div className="bg-slate-900 border border-rose-900/40 rounded-xl p-4 flex flex-col justify-between card-interactive hover:border-rose-700">
           <span className="text-rose-400 text-xs font-medium flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
             P0 Kritis
           </span>
           <div className="flex items-baseline justify-between mt-2">
@@ -243,7 +243,7 @@ export default function Tickets({ onSwitchTab, mtStatus, isLargeText, userRole }
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-amber-900/40 rounded-xl p-4 flex flex-col justify-between">
+        <div className="bg-slate-900 border border-amber-900/40 rounded-xl p-4 flex flex-col justify-between card-interactive hover:border-amber-700">
           <span className="text-amber-400 text-xs font-medium">P1 High</span>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-2xl sm:text-3xl font-black text-amber-400">{p1Count}</span>
@@ -253,7 +253,7 @@ export default function Tickets({ onSwitchTab, mtStatus, isLargeText, userRole }
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-emerald-900/40 rounded-xl p-4 flex flex-col justify-between">
+        <div className="bg-slate-900 border border-emerald-900/40 rounded-xl p-4 flex flex-col justify-between card-interactive hover:border-emerald-700">
           <span className="text-emerald-400 text-xs font-medium">Selesai / Pulih</span>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-2xl sm:text-3xl font-black text-emerald-400">{totalResolved}</span>
